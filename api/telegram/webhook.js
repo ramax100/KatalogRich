@@ -331,7 +331,8 @@ export default async function telegramWebhook(req, res) {
       const callbackData = String(callback.data || '');
 
       if (callbackData === 'category_menu') {
-        const acknowledged = await answerCatalogCallback(token, callback.id);
+        // Toast muncul seketika tombol ditekan, animasi matrix menyusul.
+        const acknowledged = await answerCatalogCallback(token, callback.id, '⏳ Memuat kategori…');
         const delivered = callback.message?.chat?.id && callback.message?.message_id
           ? await editWithLoading(token, callback.message.chat.id, callback.message.message_id, 'Memuat kategori', async () => {
             const [categories, products] = await Promise.all([
@@ -349,8 +350,12 @@ export default async function telegramWebhook(req, res) {
       }
 
       if (callbackData === 'search_help') {
-        const acknowledged = await answerCatalogCallback(token, callback.id);
-        const delivered = await sendTelegramMessage(token, callback.message?.chat?.id, '🔎 Cari produk\n\nKetik nama atau kata kunci produk.\nContoh: tumbler\n\nAtau gunakan perintah: /cari tumbler');
+        const acknowledged = await answerCatalogCallback(token, callback.id, '⏳ Menyiapkan pencarian…');
+        const delivered = callback.message?.chat?.id
+          ? await sendWithLoading(token, callback.message.chat.id, 'Menyiapkan pencarian', async () => ({
+            text: '🔎 Cari produk\n\nKetik nama atau kata kunci produk.\nContoh: tumbler\n\nAtau gunakan perintah: /cari tumbler'
+          }))
+          : false;
         return sendJson(res, acknowledged && delivered ? 200 : 502, { ok: acknowledged && delivered });
       }
 
@@ -358,7 +363,7 @@ export default async function telegramWebhook(req, res) {
         ? { kind: 'catalog', offset: 0, state: {}, isNewMessage: true }
         : parsePageCallback(callbackData);
       if (page) {
-        const acknowledged = await answerCatalogCallback(token, callback.id);
+        const acknowledged = await answerCatalogCallback(token, callback.id, `⏳ ${LOADING_LABELS[page.kind] || 'Memuat katalog'}…`);
         const delivered = page.isNewMessage
           ? await sendCatalogPage(token, callback.message?.chat?.id, settings.bot_id, page.kind, page.offset, page.state)
           : await editCatalogPage(token, callback.message, settings.bot_id, page.kind, page.offset, page.state);
