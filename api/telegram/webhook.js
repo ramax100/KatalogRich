@@ -146,6 +146,15 @@ async function editContentMessage(token, chatId, messageId, content) {
   return Boolean(ok);
 }
 
+async function deleteMessage(token, chatId, messageId) {
+  if (!messageId) return false;
+  const { ok } = await telegramRequest(token, 'deleteMessage', {
+    chat_id: chatId,
+    message_id: messageId
+  }).catch(() => ({ ok: false }));
+  return Boolean(ok);
+}
+
 async function deliverContent(token, chatId, content, options = {}) {
   if (options.loadingMessageId) {
     await playLoadingToComplete(token, chatId, options.loadingMessageId, options.loadingLabel || 'Memuat');
@@ -360,20 +369,50 @@ async function sendProductDetail(token, chatId, botId, product, whatsappNumber, 
   const contactHint = orderUrl
     ? '\n\nKlik Pesan sekarang untuk melanjutkan pemesanan via WhatsApp.'
     : '\n\nGunakan tombol di bawah untuk kembali ke semua produk.';
-  const delivered = await sendWithLoading(token, chatId, 'Memuat detail produk', async () => {
-    // Foto/GIF dikirim saat data sudah siap. Loading tetap sudah muncul lebih
-    // dulu, sehingga customer tidak menunggu tanpa indikator.
-    if (product.imageUrl) await sendTelegramVisual(token, chatId, product.imageUrl).catch(() => false);
-    return {
-      text: `${productDetailText(product)}${contactHint}`,
+  const detailText = `${productDetailText(product)}${contactHint}`;
+
+  // Tanpa gambar: cukup pakai alur loading → teks detail seperti biasa.
+  if (!product.imageUrl) {
+    const delivered = await sendWithLoading(token, chatId, 'Memuat detail produk', async () => ({
+      text: detailText,
       replyMarkup
-    };
-  }, options);
-  // Detail produk bukan daftar baru, jadi pertahankan konteks daftar produk
-  // terakhir. Dengan begitu setelah membuka produk dari kategori/pencarian,
-  // angka berikutnya tetap merujuk daftar yang sama, bukan katalog utama.
-  if (delivered) await noteMenuContext(botId, chatId, productListContextOrDefault(listContext));
-  return delivered;
+    }), options);
+    if (delivered) await noteMenuContext(botId, chatId, productListContextOrDefault(listContext));
+    return delivered;
+  }
+
+  // Dengan gambar: loading tetap muncul dan berjalan sampai 100%, lalu loading
+  // dihapus sehingga hasil akhir rapi: FOTO di atas, teks/caption + tombol
+  // Pesan sekarang di bawah. Ini menghindari kasus teks detail berada di atas
+  // foto karena pesan loading diedit menjadi teks.
+  const label = 'Memuat detail produk';
+  const loadingId = options.loadingMessageId || await startLoadingMessage(token, chatId, label);
+  if (loadingId) await playLoadingToComplete(token, chatId, loadingId, label);
+
+  let delivered = false;
+  if (detailText.length <= 1024) {
+    delivered = await sendTelegramVisual(token, chatId, product.imageUrl, detailText, replyMarkup).catch(() => false);
+  } else {
+    const visualSent = await sendTelegramVisual(token, chatId, product.imageUrl).catch(() => false);
+    const textSent = visualSent
+      ? await sendContentMessage(token, chatId, { text: detailText, replyMarkup })
+      : false;
+    delivered = visualSent && textSent;
+  }
+
+  if (delivered) {
+    if (loadingId) await deleteMessage(token, chatId, loadingId).catch(() => false);
+    await noteMenuContext(botId, chatId, productListContextOrDefault(listContext));
+    return true;
+  }
+
+  // Fallback kalau Telegram gagal mengirim foto/GIF: detail tetap tampil dengan
+  // tombol, meskipun tanpa media.
+  const fallbackDelivered = loadingId
+    ? await editContentMessage(token, chatId, loadingId, { text: detailText, replyMarkup })
+    : await sendContentMessage(token, chatId, { text: detailText, replyMarkup });
+  if (fallbackDelivered) await noteMenuContext(botId, chatId, productListContextOrDefault(listContext));
+  return fallbackDelivered;
 }
 
 export default async function telegramWebhook(req, res) {
