@@ -28,7 +28,7 @@ export const config = {
 };
 
 const PAGE_SIZE = 10;
-const ALL_PRODUCTS_BUTTON_TEXT = '📋 Kembali ke semua produk';
+const ALL_PRODUCTS_BUTTON_TEXT = '📋 Semua produk';
 const SEARCH_HELP_TEXT = '🔎 Cari produk\n\nKetik nama atau kata kunci produk minimal 2 karakter.\nContoh: tumbler\n\nAtau gunakan perintah: /cari tumbler';
 
 function allProductsButton() {
