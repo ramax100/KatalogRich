@@ -23,6 +23,7 @@
 
 ### Untuk customer (bot Telegram)
 - `/start` sapaan welcome dengan tombol buka katalog.
+- Setiap konten dimuat dengan **animasi loading matrix 1% → 100%** (bar `█████░░░░░`) yang kemudian berubah menjadi konten — tidak ada pesan menumpuk.
 - `/katalog` daftar produk berhalaman, `/populer` produk terlaris.
 - `/kategori` daftar kategori ringkas `[1] Nama (N produk)` — buka cukup dengan **ketik angkanya saja** (mis. `2`); perintah `/kategori 2` juga tetap bisa.
 - `/cari kata` atau ketik teks apa saja untuk mencari produk.
