@@ -6,7 +6,6 @@ import {
   editTelegramMessage,
   getDecryptedBotToken,
   getTelegramSettingsByWebhookSecret,
-  rememberCustomerChat,
   renderWelcomeText,
   secretMatches,
   sendTelegramMessage,
@@ -23,6 +22,7 @@ import {
   whatsappOrderUrl
 } from '../../lib/catalog-products.js';
 import { categoryListText, getCategories, getCategoryById } from '../../lib/catalog-categories.js';
+import { rememberCustomerChat } from '../../lib/customer-chats.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '32kb' } }
@@ -179,6 +179,15 @@ export default async function telegramWebhook(req, res) {
     const message = update?.message;
     const messageText = typeof message?.text === 'string' ? message.text.trim() : '';
 
+    // Daftarkan customer dari interaksi apa pun (bukan hanya /start) agar fitur
+    // Kirim Pesan menjangkau semua orang yang pernah menghubungi bot. Hanya
+    // chat privat yang dicatat — ID grup tidak boleh masuk daftar broadcast.
+    // Non-blocking: kegagalan pencatatan tidak pernah mengganggu balasan bot.
+    const privateChatId = (message?.chat?.type === 'private' && message.chat.id)
+      || (callback?.message?.chat?.type === 'private' && callback.message.chat.id)
+      || null;
+    if (privateChatId) await rememberCustomerChat(settings.bot_id, privateChatId).catch(() => {});
+
     if (callback?.id) {
       const token = getDecryptedBotToken(settings);
       const callbackData = String(callback.data || '');
@@ -265,9 +274,7 @@ export default async function telegramWebhook(req, res) {
     }
 
     if (!/^\/start(?:\s|$)/i.test(messageText)) return sendJson(res, 200, { ok: true });
-    // A customer becomes a broadcast recipient only after pressing Start.
-    // Keep this non-blocking so an occasional storage error never blocks welcome.
-    await rememberCustomerChat(settings.bot_id, message.chat.id).catch(() => {});
+    // Customer ini sudah dicatat sebagai penerima Kirim Pesan saat update masuk di atas.
     const welcomeText = renderWelcomeText(settings.welcome_text, message);
     const delivered = await sendWelcomeMessage(token, message.chat.id, welcomeText);
     return sendJson(res, delivered ? 200 : 502, { ok: delivered });

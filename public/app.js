@@ -142,19 +142,23 @@
     diagnosticResults.classList.toggle('hidden', !checks.length);
   }
 
-  function setBroadcastEnabled(enabled, audience = 0) {
+  function setBroadcastEnabled(enabled, audience = 0, reason = '') {
     broadcastAudience = enabled ? audience : 0;
     broadcastText.disabled = !enabled;
     sendBroadcastButton.disabled = !enabled || !audience;
     broadcastAudienceBadge.classList.toggle('ready', enabled);
-    broadcastAudienceBadge.innerHTML = `<span></span> ${enabled ? `Bot siap · ${audience} customer` : 'Memuat koneksi bot…'}`;
+    broadcastAudienceBadge.innerHTML = `<span></span> ${enabled
+      ? `Bot siap · ${audience} customer`
+      : (reason === 'error' ? 'Daftar customer belum dapat dimuat' : 'Hubungkan bot untuk memuat customer')}`;
     if (!enabled) {
       broadcastText.value = '';
       broadcastCharCount.textContent = '0 / 4.096';
-      broadcastState.textContent = 'Memuat status bot untuk fitur kirim pesan…';
+      broadcastState.textContent = reason === 'error'
+        ? 'Daftar customer belum dapat dimuat. Muat ulang panel atau hubungkan ulang bot Anda.'
+        : 'Hubungkan bot terlebih dahulu untuk mengirim pesan ke customer.';
       broadcastError.classList.add('hidden');
     } else if (!audience) {
-      broadcastState.textContent = 'Bot sudah terhubung. Belum ada customer tersimpan; minta customer menekan Start terlebih dahulu.';
+      broadcastState.textContent = 'Belum ada customer tercatat. Customer otomatis masuk daftar setelah mengirim pesan apa pun ke bot Anda.';
     } else {
       broadcastState.textContent = `Pesan akan dikirim ke ${audience} customer.`;
     }
@@ -174,12 +178,13 @@
     try {
       const { response, data } = await request('/api/broadcast', { method: 'GET' });
       if (!response.ok || !data.ok) {
-        setBroadcastEnabled(false);
+        const unauthenticated = response.status === 401 || response.status === 403;
+        setBroadcastEnabled(false, 0, unauthenticated ? 'disconnected' : 'error');
         return;
       }
       setBroadcastEnabled(true, data.audience || 0);
     } catch {
-      setBroadcastEnabled(false);
+      setBroadcastEnabled(false, 0, 'error');
     }
   }
 
@@ -529,8 +534,7 @@
     nextSection.style.borderColor = '';
     setWelcomeState(false);
     setCatalogState(false);
-    setBroadcastEnabled(false);
-    loadBroadcastAudience();
+    setBroadcastEnabled(false, 0, 'disconnected');
     setDiagnosticEnabled(true);
     diagnosticState.textContent = 'Diagnostik tetap dapat memeriksa bot terakhir meski sesi sudah berakhir.';
     clearWelcomeError();
@@ -682,6 +686,7 @@
     let offset = 0;
     let totalDelivered = 0;
     let totalFailed = 0;
+    let totalBlockedRemoved = 0;
     setBroadcastLoading(true);
     broadcastError.classList.add('hidden');
     try {
@@ -693,12 +698,19 @@
         if (!response.ok || !data.ok) throw new Error(data.message || 'Pesan belum dapat dikirim.');
         totalDelivered += data.delivered || 0;
         totalFailed += data.failed || 0;
+        totalBlockedRemoved += data.blockedRemoved || 0;
         offset = data.nextOffset;
       }
-      broadcastState.textContent = `✓ Selesai. ${totalDelivered} pesan terkirim${totalFailed ? `, ${totalFailed} gagal` : ''}.`;
+      const summary = `✓ Selesai. ${totalDelivered} pesan terkirim${totalFailed ? `, ${totalFailed} gagal` : ''}${totalBlockedRemoved ? ` · ${totalBlockedRemoved} customer tidak aktif dibersihkan dari daftar` : ''}.`;
       broadcastText.value = '';
       broadcastCharCount.textContent = '0 / 4.096';
+      broadcastAudience = 1; // Jaga tombol aktif selama daftar dimuat ulang.
       await loadBroadcastAudience();
+      // Tampilkan kembali ringkasan setelah daftar termuat ulang (daftar bisa
+      // berkurang bila ada customer tidak aktif yang dibersihkan).
+      broadcastState.textContent = broadcastAudience
+        ? `${summary} Sisa customer aktif: ${broadcastAudience}.`
+        : `${summary} Customer baru otomatis tercatat saat mengirim pesan ke bot.`;
     } catch (error) {
       showBroadcastError(error.message || 'Pesan belum dapat dikirim. Coba lagi.');
       broadcastState.textContent = 'Pengiriman dihentikan. Pesan yang sudah terkirim tidak akan dikirim ulang.';
@@ -1083,16 +1095,14 @@
       } else {
         setWelcomeState(false);
         setCatalogState(false);
-        setBroadcastEnabled(false);
-        await loadBroadcastAudience();
+        setBroadcastEnabled(false, 0, 'disconnected');
         setDiagnosticEnabled(true);
         diagnosticState.textContent = 'Diagnostik dapat memeriksa bot yang terakhir dikonfigurasi.';
       }
     } catch {
       setWelcomeState(false);
       setCatalogState(false);
-      setBroadcastEnabled(false);
-      await loadBroadcastAudience();
+      setBroadcastEnabled(false, 0, 'disconnected');
       setDiagnosticEnabled(true);
       diagnosticState.textContent = 'Diagnostik dapat memeriksa bot yang terakhir dikonfigurasi.';
     }

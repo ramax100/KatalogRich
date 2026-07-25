@@ -1,6 +1,6 @@
 # Katalink — Telegram Catalog Panel
 
-Panel admin untuk menghubungkan satu bot Telegram, mengaktifkan webhook, dan mengatur pesan welcome yang dikirim saat customer menekan **Start** atau mengirim `/start`.
+Panel admin untuk menghubungkan satu bot Telegram, mengaktifkan webhook, mengatur pesan welcome, mengelola katalog produk, dan mengirim pesan ke semua customer.
 
 ## Fitur yang tersedia
 
@@ -12,6 +12,13 @@ Panel admin untuk menghubungkan satu bot Telegram, mengaktifkan webhook, dan men
 - Token BotFather dienkripsi menggunakan **AES-256-GCM** sebelum disimpan.
 - Token tidak pernah dikembalikan ke browser, disimpan di `localStorage`, atau ditulis ke log.
 - Validasi webhook memakai `X-Telegram-Bot-Api-Secret-Token`.
+- Katalog produk (maks. 50): foto via Supabase Storage, kategori, produk populer, pengurutan, pencarian `/cari`, dan tombol **Pesan sekarang** ke WhatsApp.
+- **Kirim Pesan (broadcast)** ke semua customer, dengan ketentuan:
+  - Customer otomatis tercatat saat mengirim pesan apa pun ke bot (bukan hanya `/start`), khusus chat privat.
+  - Daftar customer disimpan di tabel `catalog_customer_chats` dengan upsert atomik — tidak ada chat yang hilang saat pesan masuk bersamaan.
+  - Customer yang memblokir bot atau akunnya hilang (error 403/chat tidak ditemukan) otomatis dibersihkan dari daftar kirim berikutnya.
+  - Endpoint broadcast **wajib login** (`/api/broadcast` menolak permintaan tanpa sesi admin; tidak ada fallback anonim).
+  - Pengiriman bertahap: 40 customer per batch, 10 paralel dengan jeda aman, sesuai batas rate Telegram.
 
 ## Arsitektur
 
@@ -31,7 +38,7 @@ Cookie sesi HTTP-only hanya membawa metadata bot yang ditandatangani dan berlaku
 ## Menyiapkan Supabase
 
 1. Buka **Supabase Dashboard → SQL Editor** pada project Supabase Anda.
-2. Jalankan file [`supabase/schema.sql`](./supabase/schema.sql) satu kali.
+2. Jalankan file [`supabase/schema.sql`](./supabase/schema.sql) satu kali, lalu jalankan **seluruh file migrasi lain** di folder [`supabase/`](./supabase) sesuai kebutuhan fitur — termasuk [`supabase/broadcast-customer-chats.sql`](./supabase/broadcast-customer-chats.sql) untuk memperbaiki fitur Kirim Pesan (memindahkan daftar customer dari kolom JSON lama ke tabel khusus yang aman dari race condition).
 3. Ambil **Project URL** dan **service_role key** dari **Project Settings → API**.
    - Jangan gunakan `anon` key.
    - Jangan pernah menaruh service role key di browser.
@@ -83,14 +90,26 @@ Lalu buka [http://localhost:3000](http://localhost:3000). Untuk benar-benar mene
 .
 ├── api/
 │   ├── bot/connect.js            # Verifikasi token, simpan terenkripsi, setWebhook
-│   ├── telegram/webhook.js       # Menangani /start dan sendMessage
+│   ├── telegram/webhook.js       # Menangani /start, katalog, pencarian, dan pencatatan customer
+│   ├── broadcast.js              # Kirim Pesan ke semua customer (wajib sesi admin)
+│   ├── products.js               # CRUD produk + foto
+│   ├── categories.js             # Kategori produk
+│   ├── contact.js                # Nomor WhatsApp pemesanan
+│   ├── diagnostics.js            # Cek webhook/katalog + perbaikan otomatis
 │   ├── session.js
 │   └── welcome.js                # Baca/simpan teks welcome
 ├── lib/
 │   ├── telegram-settings.js      # Enkripsi AES-GCM + Supabase + Telegram API
-│   └── vercel-api.js
+│   ├── customer-chats.js         # Daftar customer Kirim Pesan (upsert atomik + pembersihan otomatis)
+│   ├── catalog-products.js       # Akses data produk
+│   ├── catalog-categories.js     # Akses data kategori
+│   ├── product-images.js         # Unggah foto ke Supabase Storage
+│   └── vercel-api.js             # Sesi cookie, CSRF, helper respons
 ├── public/                       # Panel web
-├── supabase/schema.sql           # Jalankan sekali di Supabase SQL Editor
+├── supabase/                     # Migrasi SQL — jalankan sekali masing-masing di SQL Editor
+│   ├── schema.sql                # Tabel pengaturan bot + tabel produk awal
+│   ├── broadcast-customer-chats.sql  # Perbaikan fitur Kirim Pesan (wajib untuk broadcast)
+│   └── ...                       # Migrasi fitur lain (kategori, populer, urutan, dll.)
 ├── .env.example
 └── vercel.json
 ```

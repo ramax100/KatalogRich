@@ -2,32 +2,37 @@ import { getBotSession, getJsonBody, isSameOrigin, sendJson } from '../lib/verce
 import {
   SettingsConfigurationError,
   SettingsStorageError,
-  getCustomerChatIds,
   getDecryptedBotToken,
-  getLatestTelegramSettings,
   getTelegramSettings,
   isBotSessionAuthorized,
   telegramRequest
 } from '../lib/telegram-settings.js';
+import {
+  getCustomerAudienceBatch,
+  getCustomerAudienceCount,
+  isUnreachableCustomerError,
+  markCustomersBlocked
+} from '../lib/customer-chats.js';
 
 const BATCH_SIZE = 40;
 const PARALLEL_SENDS = 10;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Kirim Pesan mengirim pesan ke SEMUA customer sekaligus, sehingga wajib
+// selalu memakai sesi admin yang terverifikasi. Tidak ada fallback ke bot
+// terakhir seperti diagnostik — fallback itu membuat siapa pun dapat
+// broadcast tanpa login, dan jumlah customer ikut bocor ke pengunjung anonim.
+// Catatan: getBotSession mengembalikan payload sesi langsung ({ bot, exp }),
+// akses bot via session.bot — sama seperti api/products.js.
 async function getAuthorizedSettings(req) {
   const session = getBotSession(req);
-  if (session) {
-    try {
-      const sessionSettings = await getTelegramSettings(session.session.bot.id);
-      if (isBotSessionAuthorized(session, sessionSettings)) return { settings: sessionSettings };
-    } catch {
-      // Fall through to the latest configured bot below.
-    }
+  if (!session) {
+    return { error: { status: 401, message: 'Hubungkan bot dengan token Anda untuk mengirim pesan.' } };
   }
-  // The panel can still send essential announcements after an expired browser
-  // session. It uses the most recently configured bot, the same fallback as diagnostics.
-  const settings = await getLatestTelegramSettings();
-  if (!settings) return { error: { status: 404, message: 'Belum ada bot yang dapat mengirim pesan.' } };
+  const settings = await getTelegramSettings(session.bot?.id);
+  if (!isBotSessionAuthorized(session, settings)) {
+    return { error: { status: 403, message: 'Sesi tidak memiliki akses ke customer bot ini.' } };
+  }
   return { settings };
 }
 
@@ -42,10 +47,10 @@ export default async function broadcast(req, res) {
     const authorization = await getAuthorizedSettings(req);
     if (authorization.error) return sendJson(res, authorization.error.status, { ok: false, message: authorization.error.message });
     const { settings } = authorization;
-    const customers = getCustomerChatIds(settings);
 
     if (req.method === 'GET') {
-      return sendJson(res, 200, { ok: true, audience: customers.length });
+      const audience = await getCustomerAudienceCount(settings.bot_id);
+      return sendJson(res, 200, { ok: true, audience });
     }
 
     let body;
@@ -55,10 +60,12 @@ export default async function broadcast(req, res) {
     if (!message) return sendJson(res, 422, { ok: false, message: 'Pesan tidak boleh kosong.' });
     if (message.length > 4096) return sendJson(res, 422, { ok: false, message: 'Pesan maksimal 4.096 karakter.' });
 
-    const batch = customers.slice(offset, offset + BATCH_SIZE);
+    const audience = await getCustomerAudienceCount(settings.bot_id);
+    const batch = await getCustomerAudienceBatch(settings.bot_id, { offset, limit: BATCH_SIZE });
     const token = getDecryptedBotToken(settings);
     let delivered = 0;
     let failed = 0;
+    const blockedChatIds = [];
 
     for (let index = 0; index < batch.length; index += PARALLEL_SENDS) {
       const group = batch.slice(index, index + PARALLEL_SENDS);
@@ -68,21 +75,36 @@ export default async function broadcast(req, res) {
           text: message,
           disable_web_page_preview: true
         });
-        return result.ok;
+        return { chatId, result };
       }));
-      delivered += results.filter(Boolean).length;
-      failed += results.filter((value) => !value).length;
+      for (const { chatId, result } of results) {
+        if (result.ok) {
+          delivered += 1;
+        } else if (isUnreachableCustomerError(result)) {
+          blockedChatIds.push(chatId);
+        } else {
+          failed += 1;
+        }
+      }
       if (index + PARALLEL_SENDS < batch.length) await delay(550);
     }
+
+    // Customer yang chatnya sudah tidak terjangkau (memblokir bot atau akun
+    // hilang) otomatis dinonaktifkan agar tidak dicoba lagi di kirim berikutnya.
+    // Jangan biarkan kegagalan pembersihan menggugurkan hasil pengiriman.
+    const blockedRemoved = blockedChatIds.length
+      ? await markCustomersBlocked(settings.bot_id, blockedChatIds).catch(() => 0)
+      : 0;
 
     const processed = offset + batch.length;
     return sendJson(res, 200, {
       ok: true,
-      audience: customers.length,
+      audience,
       delivered,
       failed,
+      blockedRemoved,
       processed,
-      nextOffset: processed < customers.length ? processed : null
+      nextOffset: batch.length && processed < audience ? processed : null
     });
   } catch (error) {
     if (error instanceof SettingsConfigurationError || error instanceof SettingsStorageError) {
