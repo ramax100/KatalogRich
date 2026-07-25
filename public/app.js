@@ -1137,9 +1137,9 @@
       clearBroadcastImage();
       return;
     }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
       clearBroadcastImage();
-      showBroadcastError('Pilih gambar berformat JPG, PNG, atau WEBP.');
+      showBroadcastError('Pilih gambar berformat JPG, PNG, WEBP, atau GIF.');
       return;
     }
     if (file.size > 1_500_000) {
@@ -1251,9 +1251,9 @@
       clearProductImage();
       return;
     }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
       clearProductImage();
-      showProductError('Pilih foto berformat JPG, PNG, atau WEBP.');
+      showProductError('Pilih gambar berformat JPG, PNG, WEBP, atau GIF.');
       return;
     }
     if (file.size > 1_500_000) {
@@ -1361,9 +1361,9 @@
     clearWelcomeError();
     const file = welcomeImage.files?.[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
       welcomeImage.value = '';
-      showWelcomeError('Pilih gambar berformat JPG, PNG, atau WEBP.');
+      showWelcomeError('Pilih gambar berformat JPG, PNG, WEBP, atau GIF.');
       return;
     }
     if (file.size > 1_500_000) {

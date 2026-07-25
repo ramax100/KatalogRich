@@ -8,7 +8,7 @@ import {
   renderWelcomeMessage,
   secretMatches,
   sendTelegramMessage,
-  sendTelegramPhoto,
+  sendTelegramVisual,
   telegramRequest
 } from '../../lib/telegram-settings.js';
 import {
@@ -284,7 +284,7 @@ function parsePageCallback(data) {
 
 async function sendProductDetail(token, chatId, botId, product, whatsappNumber) {
   if (product.imageUrl) {
-    const photoSent = await sendTelegramPhoto(token, chatId, product.imageUrl);
+    const photoSent = await sendTelegramVisual(token, chatId, product.imageUrl);
     if (!photoSent) return false;
   }
   const orderUrl = whatsappOrderUrl(whatsappNumber, product);
@@ -462,7 +462,7 @@ export default async function telegramWebhook(req, res) {
     // animasi loading berputar dan berubah menjadi teks welcome + tombol.
     // Kegagalan foto tidak pernah menggagalkan sapaan.
     if (settings.welcome_image_url) {
-      await sendTelegramPhoto(token, message.chat.id, settings.welcome_image_url).catch(() => false);
+      await sendTelegramVisual(token, message.chat.id, settings.welcome_image_url).catch(() => false);
     }
     const welcome = renderWelcomeMessage(settings.welcome_text, message);
     const delivered = await sendWithLoading(token, message.chat.id, 'Menyiapkan sapaan', async () => ({

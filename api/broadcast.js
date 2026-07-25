@@ -8,6 +8,7 @@ import {
   getSupabaseServerConfig,
   getTelegramSettings,
   isBotSessionAuthorized,
+  isGifUrl,
   telegramRequest
 } from '../lib/telegram-settings.js';
 import {
@@ -116,10 +117,13 @@ export default async function broadcast(req, res) {
     for (let index = 0; index < batch.length; index += PARALLEL_SENDS) {
       const group = batch.slice(index, index + PARALLEL_SENDS);
       const results = await Promise.all(group.map(async (chatId) => {
+        // GIF animasi dikirim via sendAnimation supaya bergerak; foto biasa
+        // via sendPhoto; tanpa gambar kirim teks biasa.
+        const isGif = imageUrl && isGifUrl(imageUrl);
         const payload = imageUrl
           ? {
               chat_id: chatId,
-              photo: imageUrl,
+              [isGif ? 'animation' : 'photo']: imageUrl,
               ...(message ? { caption: message } : {})
             }
           : {
@@ -127,7 +131,7 @@ export default async function broadcast(req, res) {
               text: message,
               disable_web_page_preview: true
             };
-        const result = await telegramRequest(token, imageUrl ? 'sendPhoto' : 'sendMessage', payload);
+        const result = await telegramRequest(token, imageUrl ? (isGif ? 'sendAnimation' : 'sendPhoto') : 'sendMessage', payload);
         return { chatId, result };
       }));
       for (const { chatId, result } of results) {
