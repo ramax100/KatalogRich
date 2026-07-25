@@ -1,0 +1,14 @@
+{
+  "name": "katalog-telegram-panel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Panel awal untuk menghubungkan bot Telegram ke aplikasi katalog.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.17"
+  }
+}
