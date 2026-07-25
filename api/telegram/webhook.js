@@ -28,7 +28,29 @@ export const config = {
 };
 
 const PAGE_SIZE = 10;
+const ALL_PRODUCTS_BUTTON_TEXT = '📋 Kembali ke semua produk';
 const SEARCH_HELP_TEXT = '🔎 Cari produk\n\nKetik nama atau kata kunci produk minimal 2 karakter.\nContoh: tumbler\n\nAtau gunakan perintah: /cari tumbler';
+
+function allProductsButton() {
+  return { text: ALL_PRODUCTS_BUTTON_TEXT, callback_data: 'catalog_page:0' };
+}
+
+function allProductsRow() {
+  return [allProductsButton()];
+}
+
+function allProductsKeyboard() {
+  return { inline_keyboard: [allProductsRow()] };
+}
+
+function categoryMenuKeyboard() {
+  return {
+    inline_keyboard: [
+      allProductsRow(),
+      [{ text: '🔎 Cari produk', callback_data: 'search_help' }]
+    ]
+  };
+}
 
 function safeOffset(value) {
   const offset = Number(value);
@@ -139,30 +161,24 @@ function pageKeyboard(kind, offset, hasMore, state = {}) {
   if (offset > 0) navigation.push({ text: '‹ Sebelumnya', callback_data: callbackFor(kind, Math.max(0, offset - PAGE_SIZE), state) });
   if (hasMore) navigation.push({ text: 'Selanjutnya ›', callback_data: callbackFor(kind, offset + PAGE_SIZE, state) });
 
-  // Tombol box untuk melompat kembali ke halaman pertama — hanya muncul saat
-  // customer sudah sampai di produk-produk terakhir (tidak ada Selanjutnya
-  // lagi) supaya tidak perlu menekan Sebelumnya berkali-kali.
-  const backToStartRow = offset > 0 && !hasMore
-    ? [{ text: '⏮ Kembali ke produk awal', callback_data: callbackFor(kind, 0, state) }]
-    : null;
-
-  // On the main catalog, show exactly the requested navigation and popular boxes.
+  // Tombol "Kembali ke semua produk" dibuat sebagai box inline di semua
+  // tampilan daftar: katalog, kategori, populer, dan hasil pencarian. Pada
+  // halaman katalog utama tombol ini aman ditekan kapan pun karena mengarah ke
+  // halaman pertama semua produk.
   if (kind === 'catalog') {
-    const navigationRow = [...navigation, { text: '🔥 Produk populer', callback_data: 'popular_page:0' }];
     const rows = [
-      navigationRow,
+      [...navigation, { text: '🔥 Produk populer', callback_data: 'popular_page:0' }],
+      allProductsRow(),
       [
         { text: '📂 Kategori', callback_data: 'category_menu' },
         { text: '🔎 Cari produk', callback_data: 'search_help' }
       ]
     ];
-    if (backToStartRow) rows.splice(1, 0, backToStartRow);
     return { inline_keyboard: rows };
   }
 
   const rows = navigation.length ? [navigation] : [];
-  if (backToStartRow) rows.push(backToStartRow);
-  rows.push([{ text: '📋 Semua produk', callback_data: 'catalog_page:0' }]);
+  rows.push(allProductsRow());
   return { inline_keyboard: rows };
 }
 
@@ -177,7 +193,7 @@ async function getCatalogPage(botId, kind, offset = 0, state = {}) {
     title = '🔥 Produk Populer';
   } else if (kind === 'category') {
     const category = await getCategoryById(botId, state.categoryId);
-    if (!category) return { products: [], title: '📂 Kategori tidak ditemukan', keyboard: { inline_keyboard: [[{ text: '📋 Semua produk', callback_data: 'catalog_page:0' }]] } };
+    if (!category) return { products: [], title: '📂 Kategori tidak ditemukan', keyboard: allProductsKeyboard() };
     products = await getProducts(botId, { ...fetchOptions, categoryId: category.id });
     title = `📂 ${category.name}`;
   } else if (kind === 'search') {
@@ -253,14 +269,15 @@ function searchKeywordLength(value) {
 
 async function sendSearchHelp(token, chatId, botId) {
   const delivered = await sendWithLoading(token, chatId, 'Menyiapkan pencarian', async () => ({
-    text: SEARCH_HELP_TEXT
+    text: SEARCH_HELP_TEXT,
+    replyMarkup: allProductsKeyboard()
   }));
   if (delivered) await noteMenuContext(botId, chatId, 'search_prompt');
   return delivered;
 }
 
 async function sendSearchTooShort(token, chatId, botId) {
-  const delivered = await sendTelegramMessage(token, chatId, `Kata kunci pencarian minimal 2 karakter.\n\n${SEARCH_HELP_TEXT}`);
+  const delivered = await sendTelegramMessage(token, chatId, `Kata kunci pencarian minimal 2 karakter.\n\n${SEARCH_HELP_TEXT}`, allProductsKeyboard());
   if (delivered) await noteMenuContext(botId, chatId, 'search_prompt');
   return delivered;
 }
@@ -321,13 +338,13 @@ async function sendProductDetail(token, chatId, botId, product, whatsappNumber, 
   const orderUrl = whatsappOrderUrl(whatsappNumber, product);
   // Tombol box kembali selalu ada: customer tidak perlu mengetik /katalog lagi
   // setelah membaca detail (atau menekan Pesan sekarang lalu kembali).
-  const backToCatalog = { text: '📋 Kembali ke katalog', callback_data: 'catalog_page:0' };
+  const backToCatalog = allProductsButton();
   const replyMarkup = orderUrl
     ? { inline_keyboard: [[{ text: '🟢 Pesan sekarang', url: orderUrl }], [backToCatalog]] }
     : { inline_keyboard: [[backToCatalog]] };
   const contactHint = orderUrl
     ? '\n\nKlik Pesan sekarang untuk melanjutkan pemesanan via WhatsApp.'
-    : '\n\nGunakan tombol di bawah untuk kembali ke daftar produk.';
+    : '\n\nGunakan tombol di bawah untuk kembali ke semua produk.';
   const delivered = await sendWithLoading(token, chatId, 'Memuat detail produk', async () => ({
     text: `${productDetailText(product)}${contactHint}`,
     replyMarkup
@@ -379,7 +396,7 @@ export default async function telegramWebhook(req, res) {
             ]);
             return {
               text: categoryListText(categories, products),
-              replyMarkup: { inline_keyboard: [[{ text: '📋 Semua produk', callback_data: 'catalog_page:0' }], [{ text: '🔎 Cari produk', callback_data: 'search_help' }]] }
+              replyMarkup: categoryMenuKeyboard()
             };
           })
           : false;
@@ -430,7 +447,7 @@ export default async function telegramWebhook(req, res) {
             getCategories(settings.bot_id),
             getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS })
           ]);
-          return { text: categoryListText(categories, products) };
+          return { text: categoryListText(categories, products), replyMarkup: categoryMenuKeyboard() };
         });
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, 'categories');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
@@ -440,7 +457,7 @@ export default async function telegramWebhook(req, res) {
       const category = resolveCategoryByNumber(categories, categoryMatch[1]);
       if (!category) {
         const products = await getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS });
-        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`);
+        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`, categoryMenuKeyboard());
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, 'categories');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
@@ -475,7 +492,7 @@ export default async function telegramWebhook(req, res) {
           const opened = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: category.id });
           return sendJson(res, opened ? 200 : 502, { ok: opened });
         }
-        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`);
+        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`, categoryMenuKeyboard());
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, 'categories');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
@@ -484,7 +501,7 @@ export default async function telegramWebhook(req, res) {
       const listContext = productListContextOrDefault(menu?.context);
       const product = await findProductByListNumber(settings.bot_id, listContext, numberMatch[1]);
       if (!product) {
-        const delivered = await sendTelegramMessage(token, message.chat.id, 'Nomor produk tidak ditemukan. Ketik /katalog untuk melihat daftar produk.');
+        const delivered = await sendTelegramMessage(token, message.chat.id, 'Nomor produk tidak ditemukan. Ketik /katalog untuk melihat daftar produk.', allProductsKeyboard());
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, listContext);
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
