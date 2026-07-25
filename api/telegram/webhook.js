@@ -596,19 +596,34 @@ export default async function telegramWebhook(req, res) {
 
     if (!/^\/start(?:\s|$)/i.test(messageText)) return sendJson(res, 200, { ok: true });
     // Customer ini sudah dicatat sebagai penerima Kirim Pesan saat update masuk di atas.
-    // Loading sapaan muncul dulu agar customer langsung melihat indikator,
-    // termasuk saat welcome memakai gambar/GIF yang perlu waktu dikirim.
-    // Kegagalan foto tidak pernah menggagalkan sapaan.
-    const loadingId = await startLoadingMessage(token, message.chat.id, 'Menyiapkan sapaan');
-    if (settings.welcome_image_url) {
-      await sendTelegramVisual(token, message.chat.id, settings.welcome_image_url).catch(() => false);
-    }
+    // Welcome bergambar dibuat rapi: loading muncul dulu sampai 100%, lalu
+    // hasil akhirnya FOTO/GIF di atas dan teks welcome + tombol di bawah.
     const welcome = renderWelcomeMessage(settings.welcome_text, message);
-    const delivered = await sendWithLoading(token, message.chat.id, 'Menyiapkan sapaan', async () => ({
+    const welcomeContent = {
       text: welcome.text,
       entities: welcome.entities,
       replyMarkup: { inline_keyboard: [[{ text: '🛍 Lihat katalog', callback_data: 'open_catalog' }]] }
-    }), loadingId ? { loadingMessageId: loadingId, loadingLabel: 'Menyiapkan sapaan' } : {});
+    };
+
+    if (settings.welcome_image_url) {
+      const loadingId = await startLoadingMessage(token, message.chat.id, 'Menyiapkan sapaan');
+      if (loadingId) await playLoadingToComplete(token, message.chat.id, loadingId, 'Menyiapkan sapaan');
+
+      const imageSent = await sendTelegramVisual(token, message.chat.id, settings.welcome_image_url).catch(() => false);
+      const textSent = imageSent ? await sendContentMessage(token, message.chat.id, welcomeContent) : false;
+      if (imageSent && textSent) {
+        if (loadingId) await deleteMessage(token, message.chat.id, loadingId).catch(() => false);
+        return sendJson(res, 200, { ok: true });
+      }
+
+      // Fallback: kalau gambar gagal, welcome tetap terkirim sebagai teks.
+      const fallbackDelivered = loadingId
+        ? await editContentMessage(token, message.chat.id, loadingId, welcomeContent)
+        : await sendContentMessage(token, message.chat.id, welcomeContent);
+      return sendJson(res, fallbackDelivered ? 200 : 502, { ok: fallbackDelivered });
+    }
+
+    const delivered = await sendWithLoading(token, message.chat.id, 'Menyiapkan sapaan', async () => welcomeContent);
     return sendJson(res, delivered ? 200 : 502, { ok: delivered });
   } catch (error) {
     const status = error instanceof SettingsConfigurationError || error instanceof SettingsStorageError ? 503 : 500;
