@@ -432,3 +432,29 @@ footer a { text-decoration: none; }
   .breadcrumbs span, .breadcrumbs i { display: none; }
   .breadcrumbs strong { font-size: 12px; }
 }
+
+/* === Login admin === */
+.login-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 22px; background: #0c1929; background-image: radial-gradient(60% 55% at 50% 0%, rgba(40, 120, 232, .28), transparent); backdrop-filter: blur(2px); }
+.login-card { width: min(100%, 372px); padding: 30px 28px 26px; background: var(--card); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; box-shadow: 0 24px 60px rgba(4, 16, 33, .45); }
+.login-brand { display: flex; align-items: center; gap: 9px; }
+.login-brand-text { color: var(--ink); font-size: 16px; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
+.login-brand-text small { display: block; margin-top: 3px; color: #91a0b3; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.login-card h1 { margin: 20px 0 0; font-size: 21px; letter-spacing: -.4px; }
+.login-intro { margin: 7px 0 18px; color: var(--muted); font-size: 11.5px; line-height: 1.55; }
+.login-card form label { display: block; margin: 12px 0 6px; color: #5b6c81; font-size: 10.5px; font-weight: 750; }
+.login-card form input { width: 100%; height: 42px; padding: 0 13px; background: #f8fafc; border: 1px solid var(--line-dark); border-radius: 9px; color: var(--ink); font-size: 13px; outline: none; transition: .15s; }
+.login-card form input:focus { background: #fff; border-color: #9ec6ef; box-shadow: 0 0 0 3px rgba(40, 120, 232, .12); }
+.login-submit { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 44px; margin-top: 18px; color: #fff; background: var(--blue); border: 1px solid #216bd0; border-radius: 10px; font-size: 13px; font-weight: 800; letter-spacing: .1px; transition: .15s; }
+.login-submit:hover { background: #216bd0; }
+.login-submit:disabled { cursor: wait; opacity: .75; }
+.login-button-loader { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+.login-submit.loading .login-button-loader { display: block; }
+.login-note { display: flex; align-items: flex-start; gap: 7px; margin: 16px 0 0; color: #95a2b2; font-size: 9.5px; line-height: 1.5; }
+.login-note svg { flex: 0 0 auto; width: 13px; height: 13px; margin-top: 1px; color: var(--green); }
+
+/* Tombol keluar di topbar */
+.topbar-actions { display: flex; align-items: center; gap: 14px; }
+.logout-button { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; color: #7d8ca0; background: #f5f7fa; border: 1px solid var(--line); border-radius: 7px; font-size: 10px; font-weight: 750; transition: .15s; }
+.logout-button:hover { color: var(--red); background: var(--red-soft); border-color: #f3d5d9; }
+.logout-button svg { width: 14px; height: 14px; }
+@media (max-width: 760px) { .logout-button { height: 28px; padding: 0 9px; font-size: 9px; } .topbar-actions { gap: 9px; } }

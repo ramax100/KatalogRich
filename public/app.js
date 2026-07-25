@@ -84,6 +84,14 @@
   const botManagerState = document.querySelector('#botManagerState');
   const tokenFormTitle = document.querySelector('#tokenFormTitle');
   const tokenFormHint = document.querySelector('#tokenFormHint');
+  const loginOverlay = document.querySelector('#loginOverlay');
+  const loginForm = document.querySelector('#loginForm');
+  const loginUsername = document.querySelector('#loginUsername');
+  const loginPassword = document.querySelector('#loginPassword');
+  const loginError = document.querySelector('#loginError');
+  const loginSubmit = document.querySelector('#loginSubmit');
+  const loginButtonText = document.querySelector('.login-button-text');
+  const logoutButton = document.querySelector('#logoutButton');
   const setupProgressCount = document.querySelector('#setupProgressCount');
   const setupProgressBar = document.querySelector('#setupProgressBar');
   const setupProgressText = document.querySelector('#setupProgressText');
@@ -714,6 +722,25 @@
     loadBots();
   }
 
+  function showLogin(message = '') {
+    loginOverlay.classList.remove('hidden');
+    logoutButton.classList.add('hidden');
+    if (message) {
+      loginError.textContent = message;
+      loginError.classList.remove('hidden');
+    } else {
+      loginError.textContent = '';
+      loginError.classList.add('hidden');
+    }
+    setTimeout(() => loginUsername.focus(), 90);
+  }
+
+  function hideLogin() {
+    loginOverlay.classList.add('hidden');
+    logoutButton.classList.remove('hidden');
+    loginPassword.value = '';
+  }
+
   async function request(url, options = {}) {
     const response = await fetch(url, {
       credentials: 'same-origin',
@@ -721,6 +748,8 @@
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
     });
     const data = await response.json().catch(() => ({ ok: false, message: 'Respons server tidak dapat dibaca.' }));
+    // Sesi admin kedaluwarsa di tengah pemakaian → kembali ke layar login.
+    if (data && data.loginRequired) showLogin('Sesi admin berakhir. Silakan login kembali.');
     return { response, data };
   }
 
@@ -1305,10 +1334,15 @@
   window.addEventListener('hashchange', () => switchPanel(window.location.hash.slice(1), false));
   switchPanel(window.location.hash.slice(1), false);
 
-  (async () => {
+  async function boot() {
     try {
       const { data } = await request('/api/session', { method: 'GET' });
-      if (data.ok && data.connected && data.bot) {
+      if (!data.ok || !data.authed) {
+        showLogin();
+        return;
+      }
+      hideLogin();
+      if (data.connected && data.bot) {
         showConnected(data.bot);
         await loadActiveBotData();
       } else {
@@ -1329,5 +1363,48 @@
       updateSetupProgress();
       loadBots();
     }
-  })();
+  }
+
+  loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    loginError.classList.add('hidden');
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+    if (!username || !password) {
+      loginError.textContent = 'Masukkan username dan password.';
+      loginError.classList.remove('hidden');
+      return;
+    }
+    loginSubmit.disabled = true;
+    loginSubmit.classList.add('loading');
+    loginButtonText.textContent = 'Memeriksa kredensial…';
+    try {
+      const { response, data } = await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+      if (!response.ok || !data.ok) {
+        loginError.textContent = data.message || 'Login gagal. Coba lagi.';
+        loginError.classList.remove('hidden');
+        return;
+      }
+      hideLogin();
+      await boot();
+    } catch {
+      loginError.textContent = 'Tidak dapat menghubungi server. Periksa koneksi Anda.';
+      loginError.classList.remove('hidden');
+    } finally {
+      loginSubmit.disabled = false;
+      loginSubmit.classList.remove('loading');
+      loginButtonText.textContent = 'Masuk ke panel';
+    }
+  });
+
+  logoutButton.addEventListener('click', async () => {
+    logoutButton.disabled = true;
+    try { await request('/api/auth/logout', { method: 'POST', body: '{}' }); } catch { /* tetap keluar di sisi client */ }
+    logoutButton.disabled = false;
+    showDisconnected();
+    setTokenTarget(null);
+    showLogin();
+  });
+
+  boot();
 })();

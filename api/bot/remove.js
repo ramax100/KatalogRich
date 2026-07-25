@@ -1,4 +1,6 @@
-import { clearBotSession, getBotSession, getJsonBody, isSameOrigin, sendJson } from '../../lib/vercel-api.js';
+import { clearBotSession, getBotSession, getJsonBody, isSameOrigin, sendJson,
+  requireAdmin
+} from '../../lib/vercel-api.js';
 import {
   SettingsConfigurationError,
   SettingsStorageError,
@@ -22,6 +24,7 @@ export default async function removeBot(req, res) {
   if (!isSameOrigin(req)) {
     return sendJson(res, 403, { ok: false, message: 'Permintaan tidak berasal dari panel ini.' });
   }
+  if (!requireAdmin(req, res)) return;
 
   let botId = '';
   try {

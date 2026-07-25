@@ -5,9 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Katalink — Hubungkan Bot Telegram</title>
-    <link rel="stylesheet" href="/styles.css?v=20260725-multibot1" />
+    <link rel="stylesheet" href="/styles.css?v=20260725-adminlogin1" />
   </head>
   <body>
+    <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <div class="login-card">
+        <div class="login-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M8.2 6.5c0-1.2 1-2.2 2.2-2.2h11.2c1.2 0 2.2 1 2.2 2.2v19c0 1.2-1 2.2-2.2 2.2H10.4c-1.2 0-2.2-1-2.2-2.2v-19Z" fill="currentColor" opacity=".22"/><path d="M11 9.5h10M11 14h10M11 18.5h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M22.8 20.7a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4Zm-1.6 3.7 1.1 1.1 2.3-2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="#071327"/></svg>
+          </span>
+          <span class="login-brand-text">Katalink<small>ADMIN PANEL</small></span>
+        </div>
+        <h1 id="loginTitle">Masuk ke panel admin</h1>
+        <p class="login-intro" id="loginIntro">Kelola katalog Telegram Anda dengan aman. Masukkan kredensial admin untuk melanjutkan.</p>
+        <form id="loginForm" novalidate>
+          <label for="loginUsername">Username</label>
+          <input id="loginUsername" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Username admin" required />
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Password admin" required />
+          <p id="loginError" class="form-error hidden" role="alert"></p>
+          <button id="loginSubmit" class="login-submit" type="submit">
+            <span class="login-button-text">Masuk ke panel</span>
+            <span class="login-button-loader" aria-hidden="true"></span>
+          </button>
+        </form>
+        <p class="login-note">
+          <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.5 3.5 5v3.8c0 3.2 2.1 5.6 5.5 6.7 3.4-1.1 5.5-3.5 5.5-6.7V5L9 2.5Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="m6.5 9 1.6 1.6 3.3-3.3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Seluruh panel dan API dilindungi sesi login. Sesi berlaku 12 jam.
+        </p>
+      </div>
+    </div>
+
     <div class="shell">
       <aside class="sidebar" aria-label="Navigasi pengaturan">
         <a class="brand" href="/" aria-label="Katalink beranda">
@@ -67,7 +95,13 @@
       <main class="main-content">
         <header class="topbar">
           <div class="breadcrumbs"><span>Pengaturan</span><i>/</i><strong id="breadcrumbCurrent">Hubungkan Bot</strong></div>
-          <div class="secure-label"><span class="lock-icon" aria-hidden="true">⌁</span> Koneksi aman</div>
+          <div class="topbar-actions">
+            <div class="secure-label"><span class="lock-icon" aria-hidden="true">⌁</span> Koneksi aman</div>
+            <button class="logout-button hidden" id="logoutButton" type="button" title="Keluar dari panel admin">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 10h8m-2.5-2.5L16 10l-2.5 2.5M11 4.5H5.5v11H11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Keluar
+            </button>
+          </div>
         </header>
 
         <nav class="mobile-tabs" aria-label="Menu panel">
@@ -295,6 +329,6 @@
         <footer><span>© 2026 Katalink</span><span>•</span><a href="#">Privasi &amp; keamanan</a></footer>
       </main>
     </div>
-    <script src="/app.js?v=20260725-multibot1"></script>
+    <script src="/app.js?v=20260725-adminlogin1"></script>
   </body>
 </html>

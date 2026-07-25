@@ -5,7 +5,8 @@ import {
   sendJson,
   setBotSession,
   tokenHasValidShape,
-  verifyTelegramToken
+  verifyTelegramToken,
+  requireAdmin
 } from '../../lib/vercel-api.js';
 import {
   SettingsConfigurationError,
@@ -38,6 +39,7 @@ export default async function connectBot(req, res) {
   if (!isSameOrigin(req)) {
     return sendJson(res, 403, { ok: false, message: 'Permintaan tidak berasal dari panel ini.' });
   }
+  if (!requireAdmin(req, res)) return;
 
   let token = '';
   let expectedBotId = null;

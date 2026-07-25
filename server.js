@@ -14,6 +14,8 @@ import categories from './api/categories.js';
 import diagnostics from './api/diagnostics.js';
 import broadcast from './api/broadcast.js';
 import bots from './api/bots.js';
+import authLogin from './api/auth/login.js';
+import authLogout from './api/auth/logout.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
@@ -42,7 +44,9 @@ const apiHandlers = new Map([
   ['/api/categories', categories],
   ['/api/diagnostics', diagnostics],
   ['/api/broadcast', broadcast],
-  ['/api/bots', bots]
+  ['/api/bots', bots],
+  ['/api/auth/login', authLogin],
+  ['/api/auth/logout', authLogout]
 ]);
 
 function setStaticSecurityHeaders(res) {

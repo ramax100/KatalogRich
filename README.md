@@ -1,9 +1,14 @@
 # Katalink — Telegram Catalog Panel
 
-Panel admin untuk menghubungkan satu bot Telegram, mengaktifkan webhook, mengatur pesan welcome, mengelola katalog produk, dan mengirim pesan ke semua customer.
+Panel admin untuk menghubungkan satu atau banyak bot Telegram, mengaktifkan webhook, mengatur pesan welcome, mengelola katalog produk, dan mengirim pesan ke semua customer — dilindungi **login admin**.
 
 ## Fitur yang tersedia
 
+- **Login admin** menggerbangi seluruh panel dan API: tanpa login, tidak ada yang bisa menghubungkan bot, melihat daftar bot, mengelola katalog, atau mengirim broadcast.
+  - Kredensial dari env `ADMIN_USERNAME`/`ADMIN_PASSWORD` (tidak pernah di-commit); perbandingan lewat digest SHA-256 + `timingSafeEqual`.
+  - Sesi cookie HttpOnly `catalog_admin` (HMAC, SameSite=Strict) berlaku 12 jam; tombol **Keluar** di topbar membersihkan semua sesi.
+  - Percobaan login dibatasi: 5x gagal per 10 menit per IP → 429.
+  - Sesi kedaluwarsa di tengah pemakaian otomatis mengembalikan layar login.
 - Verifikasi HTTP API token dari [@BotFather](https://t.me/BotFather).
 - Webhook Telegram otomatis di `/api/telegram/webhook`.
 - Editor pesan welcome di panel, dengan pratinjau Telegram.
@@ -54,7 +59,9 @@ Tambahkan berikut di **Vercel → Project → Settings → Environment Variables
 
 | Nama | Cara memperoleh | Keterangan |
 | --- | --- | --- |
-| `SESSION_SECRET` | `openssl rand -base64 48` | Menandatangani sesi admin HTTP-only. |
+| `ADMIN_USERNAME` | Tentukan sendiri | Username login panel admin. Simpan sebagai Sensitive. |
+| `ADMIN_PASSWORD` | Tentukan sendiri (password kuat) | Password login panel admin. Simpan sebagai Sensitive. |
+| `SESSION_SECRET` | `openssl rand -base64 48` | Menandatangani cookie sesi login dan sesi bot. |
 | `BOT_ENCRYPTION_KEY` | `openssl rand -base64 32` | Kunci AES-256-GCM untuk token bot. Jangan pernah diubah setelah bot tersimpan. |
 | `SUPABASE_URL` | Project Settings → API | URL project Supabase. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API | Hanya server-side; simpan sebagai Sensitive. |

@@ -1,4 +1,6 @@
-import { getBotSession, getJsonBody, isSameOrigin, sendJson } from '../lib/vercel-api.js';
+import { getBotSession, getJsonBody, isSameOrigin, sendJson,
+  requireAdmin
+} from '../lib/vercel-api.js';
 import {
   SettingsConfigurationError,
   SettingsStorageError,
@@ -26,6 +28,7 @@ export default async function welcome(req, res) {
   if (!isSameOrigin(req)) {
     return sendJson(res, 403, { ok: false, message: 'Permintaan tidak berasal dari panel ini.' });
   }
+  if (!requireAdmin(req, res)) return;
 
   const authorization = requireAuthorizedSettings(req);
   if (authorization.error) return sendJson(res, authorization.error.status, { ok: false, message: authorization.error.message });

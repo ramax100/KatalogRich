@@ -1,4 +1,6 @@
-import { getBotSession, isSameOrigin, sendJson } from '../lib/vercel-api.js';
+import { getBotSession, isSameOrigin, sendJson,
+  requireAdmin
+} from '../lib/vercel-api.js';
 import {
   SettingsConfigurationError,
   SettingsStorageError,
@@ -17,6 +19,7 @@ export default async function bots(req, res) {
   if (!isSameOrigin(req)) {
     return sendJson(res, 403, { ok: false, message: 'Permintaan tidak berasal dari panel ini.' });
   }
+  if (!requireAdmin(req, res)) return;
 
   try {
     const session = getBotSession(req);
