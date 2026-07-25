@@ -478,9 +478,15 @@ export default async function telegramWebhook(req, res) {
         : parsePageCallback(callbackData);
       if (page) {
         const acknowledgedPromise = answerCatalogCallback(token, callback.id, `${LOADING_LABELS[page.kind] || 'Memuat katalog'}…`);
-        const delivered = page.isNewMessage
-          ? await sendCatalogPage(token, callback.message?.chat?.id, settings.bot_id, page.kind, page.offset, page.state)
-          : await editCatalogPage(token, callback.message, settings.bot_id, page.kind, page.offset, page.state);
+        const chatId = callback.message?.chat?.id;
+        // Pesan detail produk bergambar adalah message media/caption. Telegram
+        // tidak bisa mengubah pesan media itu menjadi teks katalog lewat
+        // editMessageText; kalau dipaksa tombol terlihat loading terus. Jadi
+        // untuk callback dari pesan non-teks, kirim katalog sebagai pesan baru.
+        const canEditAsText = !page.isNewMessage && typeof callback.message?.text === 'string';
+        const delivered = canEditAsText
+          ? await editCatalogPage(token, callback.message, settings.bot_id, page.kind, page.offset, page.state)
+          : await sendCatalogPage(token, chatId, settings.bot_id, page.kind, page.offset, page.state);
         const acknowledged = await acknowledgedPromise;
         return sendJson(res, acknowledged && delivered ? 200 : 502, { ok: acknowledged && delivered });
       }
