@@ -66,8 +66,10 @@ function callbackFor(kind, offset, state = {}) {
 // dari 1% hingga 100%; pesan yang sama kemudian berubah menjadi konten akhir,
 // sehingga chat tetap rapi. Semua bingkai bersifat best effort — kegagalan satu
 // bingkai (mis. dibatasi Telegram) tidak pernah menggagalkan konten akhir.
-const LOADING_STEPS = [35, 70, 100];
-const LOADING_STEP_DELAY_MS = 420;
+// Animasi dibuat secepat kilat: 1% → 50% → 100% lalu langsung konten
+// (±0,5 detik total), tetap terasa hidup tanpa membuat customer menunggu.
+const LOADING_STEPS = [50, 100];
+const LOADING_STEP_DELAY_MS = 250;
 const LOADING_LABELS = {
   catalog: 'Memuat katalog',
   popular: 'Memuat produk populer',
