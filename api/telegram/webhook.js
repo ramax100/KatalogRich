@@ -82,21 +82,25 @@ function callbackFor(kind, offset, state = {}) {
   return 'catalog_page:0';
 }
 
-// === Loading instan ========================================================
-// Loading tetap dipertahankan, tetapi dibuat cepat: bot langsung mengirim atau
-// mengedit pesan menjadi loading, lalu hanya sekali mengubahnya ke konten akhir.
-// Tidak ada animasi bertahap/delay buatan, sehingga customer langsung melihat
-// indikator saat data sedang dimuat tanpa membuat respons terasa lambat.
+// === Loading instan 1% → 100% =============================================
+// Loading tetap muncul langsung di 1%, lalu bergerak singkat sampai 100%
+// sebelum berubah menjadi konten akhir. Animasi berjalan paralel dengan proses
+// ambil data, jadi indikator terlihat lengkap tanpa membuat bot terasa lambat.
 const LOADING_LABELS = {
   catalog: 'Memuat katalog',
   popular: 'Memuat produk populer',
   category: 'Memuat kategori',
   search: 'Memuat hasil pencarian'
 };
+const LOADING_STEPS = [35, 70, 100];
+const LOADING_STEP_DELAY_MS = 80;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function loadingFrameText(label) {
+function loadingFrameText(label, percent = 1) {
+  const safePercent = Math.max(1, Math.min(100, Number(percent) || 1));
+  const filled = Math.max(1, Math.min(10, Math.round(safePercent / 10)));
   return `⏳ ${label}
-█░░░░░░░░░ 1%`;
+${'█'.repeat(filled)}${'░'.repeat(10 - filled)} ${safePercent}%`;
 }
 
 function contentPayload(content) {
@@ -109,9 +113,20 @@ function contentPayload(content) {
 async function startLoadingMessage(token, chatId, label) {
   const { ok, result } = await telegramRequest(token, 'sendMessage', {
     chat_id: chatId,
-    text: loadingFrameText(label)
+    text: loadingFrameText(label, 1)
   }).catch(() => ({ ok: false }));
   return ok && result?.result?.message_id ? result.result.message_id : null;
+}
+
+async function playLoadingToComplete(token, chatId, messageId, label) {
+  for (const step of LOADING_STEPS) {
+    await sleep(LOADING_STEP_DELAY_MS);
+    await telegramRequest(token, 'editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      text: loadingFrameText(label, step)
+    }).catch(() => null);
+  }
 }
 
 async function sendContentMessage(token, chatId, content) {
@@ -132,14 +147,22 @@ async function editContentMessage(token, chatId, messageId, content) {
 }
 
 async function deliverContent(token, chatId, content, options = {}) {
-  if (options.loadingMessageId) return editContentMessage(token, chatId, options.loadingMessageId, content);
+  if (options.loadingMessageId) {
+    await playLoadingToComplete(token, chatId, options.loadingMessageId, options.loadingLabel || 'Memuat');
+    return editContentMessage(token, chatId, options.loadingMessageId, content);
+  }
   return sendContentMessage(token, chatId, content);
 }
 
 async function sendWithLoading(token, chatId, label, loadContent, options = {}) {
   const loadingId = options.loadingMessageId || await startLoadingMessage(token, chatId, label);
-  const content = await loadContent();
-  if (loadingId) return editContentMessage(token, chatId, loadingId, content);
+  const contentPromise = Promise.resolve().then(loadContent);
+  if (loadingId) {
+    const animationPromise = playLoadingToComplete(token, chatId, loadingId, label);
+    const [content] = await Promise.all([contentPromise, animationPromise]);
+    return editContentMessage(token, chatId, loadingId, content);
+  }
+  const content = await contentPromise;
   return sendContentMessage(token, chatId, content);
 }
 
@@ -147,9 +170,11 @@ async function editWithLoading(token, chatId, messageId, label, loadContent) {
   await telegramRequest(token, 'editMessageText', {
     chat_id: chatId,
     message_id: messageId,
-    text: loadingFrameText(label)
+    text: loadingFrameText(label, 1)
   }).catch(() => null);
-  const content = await loadContent();
+  const contentPromise = Promise.resolve().then(loadContent);
+  const animationPromise = playLoadingToComplete(token, chatId, messageId, label);
+  const [content] = await Promise.all([contentPromise, animationPromise]);
   return editContentMessage(token, chatId, messageId, content);
 }
 
@@ -451,7 +476,7 @@ export default async function telegramWebhook(req, res) {
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
       const loadingId = await startLoadingMessage(token, message.chat.id, 'Memuat kategori');
-      const loadingOptions = loadingId ? { loadingMessageId: loadingId } : {};
+      const loadingOptions = loadingId ? { loadingMessageId: loadingId, loadingLabel: 'Memuat kategori' } : {};
       const categories = await getCategories(settings.bot_id);
       // Nomor mengikuti nomor urut pada daftar ([1], [2], ...), bukan ID database.
       const category = resolveCategoryByNumber(categories, categoryMatch[1]);
@@ -481,7 +506,7 @@ export default async function telegramWebhook(req, res) {
       // "2"); setelah daftar/detail produk tampil, angka membuka produk.
       // Konteks ditimpa setiap kali bot menampilkan menu baru.
       const loadingId = await startLoadingMessage(token, message.chat.id, 'Memuat pilihan');
-      const loadingOptions = loadingId ? { loadingMessageId: loadingId } : {};
+      const loadingOptions = loadingId ? { loadingMessageId: loadingId, loadingLabel: 'Memuat pilihan' } : {};
       const menu = await getChatMenuContext(settings.bot_id, message.chat.id).catch(() => null);
       if (menu?.context === 'search_prompt') {
         const delivered = await handleSearchRequest(token, message.chat.id, settings.bot_id, numberMatch[1], loadingOptions);
@@ -538,7 +563,7 @@ export default async function telegramWebhook(req, res) {
       text: welcome.text,
       entities: welcome.entities,
       replyMarkup: { inline_keyboard: [[{ text: '🛍 Lihat katalog', callback_data: 'open_catalog' }]] }
-    }), loadingId ? { loadingMessageId: loadingId } : {});
+    }), loadingId ? { loadingMessageId: loadingId, loadingLabel: 'Menyiapkan sapaan' } : {});
     return sendJson(res, delivered ? 200 : 502, { ok: delivered });
   } catch (error) {
     const status = error instanceof SettingsConfigurationError || error instanceof SettingsStorageError ? 503 : 500;
