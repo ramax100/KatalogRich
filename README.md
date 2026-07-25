@@ -23,7 +23,7 @@
 ### Untuk customer (bot Telegram)
 - `/start` sapaan welcome dengan tombol buka katalog.
 - `/katalog` daftar produk berhalaman, `/populer` produk terlaris.
-- `/kategori` daftar kategori ringkas `[1] Nama (N produk)`, `/kategori 2` langsung buka.
+- `/kategori` daftar kategori ringkas `[1] Nama (N produk)` — buka cukup dengan **ketik angkanya saja** (mis. `2`); perintah `/kategori 2` juga tetap bisa.
 - `/cari kata` atau ketik teks apa saja untuk mencari produk.
 - Ketik **nomor produk** untuk melihat detail + foto + tombol **Pesan sekarang** (WhatsApp).
 
