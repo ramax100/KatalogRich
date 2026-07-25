@@ -5,7 +5,7 @@ import {
   answerCatalogCallback,
   getDecryptedBotToken,
   getTelegramSettingsByWebhookSecret,
-  renderWelcomeText,
+  renderWelcomeMessage,
   secretMatches,
   sendTelegramMessage,
   sendTelegramPhoto,
@@ -108,12 +108,14 @@ async function sendWithLoading(token, chatId, label, loadContent) {
   if (!loadingId) {
     const payload = { chat_id: chatId, text: content.text, disable_web_page_preview: true };
     if (content.replyMarkup) payload.reply_markup = content.replyMarkup;
+    if (content.entities?.length) payload.entities = content.entities;
     const { ok } = await telegramRequest(token, 'sendMessage', payload).catch(() => ({ ok: false }));
     return Boolean(ok);
   }
   await playLoadingFrames(token, chatId, loadingId, label);
   const payload = { chat_id: chatId, message_id: loadingId, text: content.text, disable_web_page_preview: true };
   if (content.replyMarkup) payload.reply_markup = content.replyMarkup;
+  if (content.entities?.length) payload.entities = content.entities;
   const { ok } = await telegramRequest(token, 'editMessageText', payload).catch(() => ({ ok: false }));
   return Boolean(ok);
 }
@@ -456,9 +458,10 @@ export default async function telegramWebhook(req, res) {
 
     if (!/^\/start(?:\s|$)/i.test(messageText)) return sendJson(res, 200, { ok: true });
     // Customer ini sudah dicatat sebagai penerima Kirim Pesan saat update masuk di atas.
-    const welcomeText = renderWelcomeText(settings.welcome_text, message);
+    const welcome = renderWelcomeMessage(settings.welcome_text, message);
     const delivered = await sendWithLoading(token, message.chat.id, 'Menyiapkan sapaan', async () => ({
-      text: welcomeText,
+      text: welcome.text,
+      entities: welcome.entities,
       replyMarkup: { inline_keyboard: [[{ text: '🛍 Lihat katalog', callback_data: 'open_catalog' }]] }
     }));
     return sendJson(res, delivered ? 200 : 502, { ok: delivered });

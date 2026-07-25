@@ -254,11 +254,14 @@
 
   function updateWelcomePreview() {
     const sample = welcomeText.value
+      .replaceAll('{mention}', 'Nadia Putri')
       .replaceAll('{first_name}', 'Nadia')
       .replaceAll('{last_name}', 'Putri')
       .replaceAll('{full_name}', 'Nadia Putri')
+      .replaceAll('{name}', 'Nadia Putri')
       .replaceAll('{username}', '@nadiaputri')
-      .replaceAll('{chat_id}', '123456789');
+      .replaceAll('{chat_id}', '123456789')
+      .replaceAll('{id}', '8123456789');
     welcomePreviewText.textContent = sample || 'Tulis pesan welcome Anda di sini.';
     welcomeCharCount.textContent = `${welcomeText.value.length.toLocaleString('id-ID')} / 4.096`;
   }

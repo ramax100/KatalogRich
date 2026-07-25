@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Katalog Rich Store — Panel Admin Katalog Telegram</title>
-    <link rel="stylesheet" href="/styles.css?v=20260725-drag1" />
+    <link rel="stylesheet" href="/styles.css?v=20260725-welcome1" />
   </head>
   <body>
     <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
@@ -217,9 +217,12 @@
                   <textarea id="welcomeText" maxlength="4096" disabled placeholder="Hubungkan bot Anda terlebih dahulu untuk mengatur pesan welcome."></textarea>
                   <div class="variable-row" aria-label="Sisipkan variabel pesan">
                     <span>Personalisasi:</span>
-                    <button type="button" class="variable-chip" data-variable="{first_name}" disabled>{first_name}</button>
-                    <button type="button" class="variable-chip" data-variable="{full_name}" disabled>{full_name}</button>
-                    <button type="button" class="variable-chip" data-variable="{username}" disabled>{username}</button>
+                    <button type="button" class="variable-chip" data-variable="{mention}" disabled title="Nama customer yang bisa diklik ke profilnya">{mention}</button>
+                    <button type="button" class="variable-chip" data-variable="{name}" disabled title="Nama lengkap customer">{name}</button>
+                    <button type="button" class="variable-chip" data-variable="{username}" disabled title="@username customer">{username}</button>
+                    <button type="button" class="variable-chip" data-variable="{id}" disabled title="ID numerik customer">{id}</button>
+                    <button type="button" class="variable-chip" data-variable="{first_name}" disabled title="Nama depan customer">{first_name}</button>
+                    <button type="button" class="variable-chip" data-variable="{full_name}" disabled title="Nama lengkap customer">{full_name}</button>
                   </div>
                   <p id="welcomeError" class="form-error hidden" role="alert"></p>
                   <div class="welcome-actions">
@@ -347,6 +350,6 @@
         <footer><span>© 2026 Katalog Rich Store</span><span>•</span><a href="#">Privasi &amp; keamanan</a></footer>
       </main>
     </div>
-    <script src="/app.js?v=20260725-drag1"></script>
+    <script src="/app.js?v=20260725-welcome1"></script>
   </body>
 </html>
