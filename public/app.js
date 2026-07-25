@@ -1142,9 +1142,9 @@
       showBroadcastError('Pilih gambar berformat JPG, PNG, WEBP, atau GIF.');
       return;
     }
-    if (file.size > 1_500_000) {
+    if (file.size > 3_000_000) {
       clearBroadcastImage();
-      showBroadcastError('Ukuran gambar maksimal 1,5 MB.');
+      showBroadcastError('Ukuran gambar maksimal 3 MB.');
       return;
     }
     const reader = new FileReader();
@@ -1256,9 +1256,9 @@
       showProductError('Pilih gambar berformat JPG, PNG, WEBP, atau GIF.');
       return;
     }
-    if (file.size > 1_500_000) {
+    if (file.size > 3_000_000) {
       clearProductImage();
-      showProductError('Ukuran foto maksimal 1,5 MB.');
+      showProductError('Ukuran gambar maksimal 3 MB.');
       return;
     }
     const reader = new FileReader();
@@ -1366,9 +1366,9 @@
       showWelcomeError('Pilih gambar berformat JPG, PNG, WEBP, atau GIF.');
       return;
     }
-    if (file.size > 1_500_000) {
+    if (file.size > 3_000_000) {
       welcomeImage.value = '';
-      showWelcomeError('Ukuran gambar maksimal 1,5 MB.');
+      showWelcomeError('Ukuran gambar maksimal 3 MB.');
       return;
     }
     const reader = new FileReader();

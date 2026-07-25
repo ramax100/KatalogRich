@@ -12,7 +12,7 @@ import { deleteStorageImage, uploadProductImage } from '../lib/product-images.js
 import { getCategoryById } from '../lib/catalog-categories.js';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '3mb' } }
+  api: { bodyParser: { sizeLimit: '6mb' } }
 };
 
 async function getAuthorizedBot(req) {

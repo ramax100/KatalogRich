@@ -12,7 +12,7 @@ import {
 import { deleteStorageImage, uploadProductImage } from '../lib/product-images.js';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '3mb' } }
+  api: { bodyParser: { sizeLimit: '6mb' } }
 };
 
 function requireAuthorizedSettings(req) {

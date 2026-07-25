@@ -22,7 +22,7 @@ import { deleteStorageImage, uploadProductImage } from '../lib/product-images.js
 // Gambar broadcast dikirim sebagai data URL base64, sehingga body bisa
 // melebihi batas default 8kb yang dipakai endpoint lain.
 export const config = {
-  api: { bodyParser: { sizeLimit: '3mb' } }
+  api: { bodyParser: { sizeLimit: '6mb' } }
 };
 
 const BATCH_SIZE = 40;
