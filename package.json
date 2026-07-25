@@ -1,8 +1,8 @@
 {
-  "name": "katalog-telegram-panel",
+  "name": "katalog-rich-store",
   "version": "0.1.0",
   "private": true,
-  "description": "Panel awal untuk menghubungkan bot Telegram ke aplikasi katalog.",
+  "description": "Panel admin web untuk membuat toko katalog di bot Telegram — multi bot, broadcast, kategori, dan pemesanan WhatsApp.",
   "type": "module",
   "scripts": {
     "start": "node server.js",
@@ -10,5 +10,6 @@
   },
   "engines": {
     "node": ">=18.17"
-  }
+  },
+  "license": "MIT"
 }
