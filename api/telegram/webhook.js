@@ -29,7 +29,7 @@ export const config = {
   api: { bodyParser: { sizeLimit: '32kb' } }
 };
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 function safeOffset(value) {
   const offset = Number(value);
@@ -67,27 +67,29 @@ function pageKeyboard(kind, offset, hasMore, state = {}) {
   if (offset > 0) navigation.push({ text: '‹ Sebelumnya', callback_data: callbackFor(kind, Math.max(0, offset - PAGE_SIZE), state) });
   if (hasMore) navigation.push({ text: 'Selanjutnya ›', callback_data: callbackFor(kind, offset + PAGE_SIZE, state) });
 
+  // Tombol box untuk melompat kembali ke halaman pertama — hanya muncul saat
+  // customer sudah sampai di produk-produk terakhir (tidak ada Selanjutnya
+  // lagi) supaya tidak perlu menekan Sebelumnya berkali-kali.
+  const backToStartRow = offset > 0 && !hasMore
+    ? [{ text: '⏮ Kembali ke produk awal', callback_data: callbackFor(kind, 0, state) }]
+    : null;
+
   // On the main catalog, show exactly the requested navigation and popular boxes.
   if (kind === 'catalog') {
-    const row = [...navigation, { text: '🔥 Produk populer', callback_data: 'popular_page:0' }];
-    return {
-      inline_keyboard: [
-        row,
-        [
-          { text: '📂 Kategori', callback_data: 'category_menu' },
-          { text: '🔎 Cari produk', callback_data: 'search_help' }
-        ]
+    const navigationRow = [...navigation, { text: '🔥 Produk populer', callback_data: 'popular_page:0' }];
+    const rows = [
+      navigationRow,
+      [
+        { text: '📂 Kategori', callback_data: 'category_menu' },
+        { text: '🔎 Cari produk', callback_data: 'search_help' }
       ]
-    };
-  }
-
-  if (kind === 'popular') {
-    const rows = navigation.length ? [navigation] : [];
-    rows.push([{ text: '📋 Semua produk', callback_data: 'catalog_page:0' }]);
+    ];
+    if (backToStartRow) rows.splice(1, 0, backToStartRow);
     return { inline_keyboard: rows };
   }
 
   const rows = navigation.length ? [navigation] : [];
+  if (backToStartRow) rows.push(backToStartRow);
   rows.push([{ text: '📋 Semua produk', callback_data: 'catalog_page:0' }]);
   return { inline_keyboard: rows };
 }
@@ -172,7 +174,7 @@ async function sendProductDetail(token, chatId, botId, product, whatsappNumber) 
     : undefined;
   const contactHint = orderUrl
     ? '\n\nKlik Pesan sekarang untuk melanjutkan pemesanan via WhatsApp.'
-    : '\n\nKetik /catalog untuk kembali ke daftar produk.';
+    : '\n\nKetik /katalog untuk kembali ke daftar produk.';
   const delivered = await sendTelegramMessage(token, chatId, `${productDetailText(product)}${contactHint}`, replyMarkup);
   if (delivered) await noteMenuContext(botId, chatId, 'products');
   return delivered;
@@ -247,7 +249,9 @@ export default async function telegramWebhook(req, res) {
     if (!message?.chat?.id) return sendJson(res, 200, { ok: true });
     const token = getDecryptedBotToken(settings);
 
-    if (/^\/catalog(?:\s|$)/i.test(messageText)) {
+    // Perintah katalog menerima dua ejaan: /catalog (bawaan awal) dan /katalog
+    // (ejaan Indonesia yang dipakai di panduan), keduanya membuka daftar produk.
+    if (/^\/(?:catalog|katalog)(?:\s|$)/i.test(messageText)) {
       const delivered = await sendCatalogPage(token, message.chat.id, settings.bot_id);
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
@@ -302,7 +306,7 @@ export default async function telegramWebhook(req, res) {
       }
       const product = await getProductByOrder(settings.bot_id, numberMatch[1], { activeOnly: true });
       if (!product) {
-        const delivered = await sendTelegramMessage(token, message.chat.id, 'Nomor produk tidak ditemukan. Ketik /catalog untuk melihat daftar produk.');
+        const delivered = await sendTelegramMessage(token, message.chat.id, 'Nomor produk tidak ditemukan. Ketik /katalog untuk melihat daftar produk.');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
       await incrementProductView(settings.bot_id, product);
