@@ -64,6 +64,8 @@
   const productCount = document.querySelector('#productCount');
   const productEmptyState = document.querySelector('#productEmptyState');
   const productList = document.querySelector('#productList');
+  const productSearch = document.querySelector('#productSearch');
+  const productVisibilityFilter = document.querySelector('#productVisibilityFilter');
 
   const categoryForm = document.querySelector('#categoryForm');
   const categoryName = document.querySelector('#categoryName');
@@ -115,6 +117,11 @@
   let productImageRemoved = false;
   let categories = [];
   let editingProduct = null;
+  // allProducts = sumber kebenaran dari server; displayedProducts = hasil
+  // saringan pencarian + filter visibilitas yang benar-benar dirender.
+  let allProducts = [];
+  let productQuery = '';
+  let productVisibility = 'active';
   let displayedProducts = [];
   let broadcastAudience = 0;
   let broadcastImageData = '';
@@ -411,9 +418,13 @@
 
   function renderCategories() {
     categoryList.replaceChildren();
-    // Format ringkas seperti di Telegram: [nomor] nama (jumlah produk).
+    // Format ringkas seperti di Telegram: [nomor] nama (jumlah produk). Jumlah
+    // hanya menghitung produk AKTIF agar persis sama dengan yang customer lihat
+    // di bot (produk tersembunyi tidak dihitung), dan selalu dihitung dari
+    // allProducts supaya pencarian tidak mengubah angkanya.
     const counts = new Map();
-    displayedProducts.forEach((product) => {
+    allProducts.forEach((product) => {
+      if (!product.isActive) return;
       const id = Number(product?.categoryId);
       if (Number.isSafeInteger(id) && id > 0) counts.set(id, (counts.get(id) || 0) + 1);
     });
@@ -475,10 +486,19 @@
     catalogConnectionState.classList.toggle('ready', enabled);
     catalogConnectionState.innerHTML = `<span></span> ${enabled ? 'Katalog siap ditampilkan' : 'Hubungkan bot untuk mengaktifkan'}`;
 
+    productSearch.disabled = !enabled;
+    productVisibilityFilter.disabled = !enabled;
+
     if (!enabled) {
       setWhatsAppState(false);
       setCategoryState(false);
       resetProductEditor();
+      allProducts = [];
+      displayedProducts = [];
+      productQuery = '';
+      productSearch.value = '';
+      productVisibility = 'active';
+      productVisibilityFilter.value = 'active';
       productList.replaceChildren();
       productCount.textContent = '0';
       productListCaption.textContent = message || 'Hubungkan bot untuk melihat katalog.';
@@ -517,18 +537,70 @@
     return svg;
   }
 
+  function makeVisibilityIcon(isVisible) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 20 20');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = isVisible
+      ? '<path d="M2.6 10S5.3 5.8 10 5.8 17.4 10 17.4 10 14.7 14.2 10 14.2 2.6 10 2.6 10Z" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/><circle cx="10" cy="10" r="2" fill="none" stroke="currentColor" stroke-width="1.45"/>'
+      : '<path d="M2.6 10S5.3 5.8 10 5.8c1.5 0 2.8.4 3.9 1M7 13.4c-2.1-1-3.6-2.6-4.4-3.4" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/><path d="m3.8 16.5 12.4-13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>';
+    return svg;
+  }
+
+  // Menyaring allProducts memakai kotak pencarian + filter visibilitas, lalu
+  // menggambar ulang daftar beserta caption/count yang menjelaskan hasilnya.
+  function applyProductView() {
+    const query = productQuery.trim().toLowerCase();
+    const matchesQuery = (product) => {
+      if (!query) return true;
+      return [product.name, product.description, String(product.price), formatRupiah(product.price)]
+        .some((text) => String(text || '').toLowerCase().includes(query));
+    };
+    const pool = productVisibility === 'all'
+      ? allProducts
+      : allProducts.filter((product) => (productVisibility === 'hidden' ? !product.isActive : product.isActive));
+    const filtered = pool.filter(matchesQuery);
+    renderProducts(filtered);
+    productCount.textContent = String(filtered.length);
+
+    const total = allProducts.length;
+    const activeTotal = allProducts.filter((product) => product.isActive).length;
+    const hiddenTotal = total - activeTotal;
+    let caption;
+    if (productQuery.trim()) {
+      caption = filtered.length
+        ? `Ditemukan ${filtered.length} produk yang cocok dengan "${productQuery.trim()}".`
+        : `Tidak ada produk yang cocok dengan "${productQuery.trim()}".`;
+    } else if (productVisibility === 'hidden') {
+      caption = filtered.length
+        ? `${filtered.length} produk tersembunyi — tidak tampil di katalog Telegram.`
+        : 'Belum ada produk tersembunyi. Tekan tombol mata pada produk untuk menyembunyikannya.';
+    } else if (productVisibility === 'all') {
+      caption = total
+        ? `${total} produk (${activeTotal} aktif · ${hiddenTotal} tersembunyi).`
+        : 'Belum ada produk untuk ditampilkan di Telegram.';
+    } else {
+      caption = filtered.length
+        ? `${filtered.length} produk aktif akan tampil saat customer membuka katalog.${hiddenTotal ? ` ${hiddenTotal} produk sedang disembunyikan.` : ''}`
+        : (hiddenTotal
+          ? 'Semua produk sedang disembunyikan. Ubah filter ke "Semua produk" atau "Tersembunyi" untuk menampilkannya kembali.'
+          : 'Belum ada produk untuk ditampilkan di Telegram.');
+    }
+    productListCaption.textContent = caption;
+    // Blok kosong besar hanya untuk katalog yang benar-benar kosong pada tampilan
+    // bawaan; hasil saringan kosong cukup dijelaskan lewat caption.
+    const showEmptyState = total === 0 && productVisibility === 'active' && !productQuery.trim();
+    productEmptyState.classList.toggle('hidden', !showEmptyState);
+    updateSetupProgress();
+  }
+
   function renderProducts(products) {
     displayedProducts = products;
     productList.replaceChildren();
-    productCount.textContent = String(products.length);
-    productListCaption.textContent = products.length
-      ? `${products.length} produk akan tampil saat customer membuka katalog.`
-      : 'Belum ada produk untuk ditampilkan di Telegram.';
-    productEmptyState.classList.toggle('hidden', products.length > 0);
 
     products.forEach((product) => {
       const row = document.createElement('article');
-      row.className = 'product-row';
+      row.className = `product-row${product.isActive ? '' : ' is-hidden'}`;
 
       const icon = document.createElement('span');
       icon.className = product.imageUrl ? 'product-row-photo' : 'product-row-icon';
@@ -554,6 +626,12 @@
       const price = document.createElement('span');
       price.textContent = formatRupiah(product.price);
       title.append(order, name, price);
+      if (!product.isActive) {
+        const hiddenBadge = document.createElement('span');
+        hiddenBadge.className = 'product-hidden-badge';
+        hiddenBadge.textContent = 'Tersembunyi';
+        title.append(hiddenBadge);
+      }
       const description = document.createElement('p');
       description.textContent = product.description || 'Tanpa deskripsi produk.';
       body.append(title, description);
@@ -592,6 +670,15 @@
       popular.setAttribute('title', product.isPopular ? 'Produk populer aktif' : 'Jadikan produk populer');
       popular.append(makePopularIcon());
 
+      const visibility = document.createElement('button');
+      visibility.type = 'button';
+      visibility.className = `product-visibility${product.isActive ? ' is-visible' : ''}`;
+      visibility.dataset.productId = String(product.id);
+      visibility.setAttribute('aria-pressed', String(product.isActive));
+      visibility.setAttribute('aria-label', product.isActive ? `Sembunyikan ${product.name} dari katalog Telegram` : `Tampilkan kembali ${product.name} di katalog Telegram`);
+      visibility.setAttribute('title', product.isActive ? 'Sembunyikan (produk tidak tampil di Telegram)' : 'Tampilkan lagi di Telegram');
+      visibility.append(makeVisibilityIcon(product.isActive));
+
       const edit = document.createElement('button');
       edit.type = 'button';
       edit.className = 'product-edit';
@@ -610,7 +697,7 @@
 
       const actions = document.createElement('div');
       actions.className = 'product-row-actions';
-      actions.append(moveUp, popular, edit, remove);
+      actions.append(moveUp, popular, visibility, edit, remove);
       row.append(icon, body, actions);
       productList.append(row);
     });
@@ -734,7 +821,7 @@
     const steps = [
       isBotConnected,
       isBotConnected && isWelcomeEnabled && Boolean(welcomeText.value.trim()),
-      isBotConnected && isCatalogEnabled && displayedProducts.length > 0,
+      isBotConnected && isCatalogEnabled && allProducts.length > 0,
       isBotConnected && isWhatsAppEnabled && Boolean(whatsappNumber.value.trim())
     ];
     const done = steps.filter(Boolean).length;
@@ -897,7 +984,9 @@
         return;
       }
       setCatalogState(true);
-      renderProducts(data.products || []);
+      allProducts = data.products || [];
+      // Terapkan ulang pencarian + filter visibilitas yang sedang aktif.
+      applyProductView();
       // Jumlah produk per kategori pada chip ikut diperbarui.
       renderCategories();
     } catch {
@@ -1336,7 +1425,46 @@
     }
   });
 
+  productSearch.addEventListener('input', () => {
+    productQuery = productSearch.value;
+    applyProductView();
+  });
+
+  productVisibilityFilter.addEventListener('change', () => {
+    productVisibility = ['active', 'hidden', 'all'].includes(productVisibilityFilter.value)
+      ? productVisibilityFilter.value
+      : 'active';
+    applyProductView();
+  });
+
   productList.addEventListener('click', async (event) => {
+    const visibilityButton = event.target.closest('.product-visibility');
+    if (visibilityButton && isCatalogEnabled) {
+      const product = displayedProducts.find((item) => String(item.id) === visibilityButton.dataset.productId);
+      if (!product) return;
+      visibilityButton.disabled = true;
+      clearProductError();
+      try {
+        const { response, data } = await request('/api/products', {
+          method: 'PATCH', body: JSON.stringify({ id: product.id, isActive: !product.isActive })
+        });
+        if (!response.ok || !data.ok) {
+          showProductError(data.message || 'Status visibilitas produk belum dapat diperbarui.');
+          visibilityButton.disabled = false;
+          return;
+        }
+        // Produk yang sedang diedit lalu disembunyikan: keluar dari mode edit
+        // agar form kembali ke mode tambah produk.
+        if (product.isActive && editingProduct && String(editingProduct.id) === String(product.id)) resetProductEditor();
+        await loadProducts();
+        showProductError(product.isActive ? '✓ Produk disembunyikan dari katalog Telegram.' : '✓ Produk ditampilkan kembali di katalog Telegram.', true);
+      } catch {
+        showProductError('Status visibilitas produk belum dapat diperbarui. Coba lagi.');
+        visibilityButton.disabled = false;
+      }
+      return;
+    }
+
     const moveButton = event.target.closest('.product-move-up');
     if (moveButton && isCatalogEnabled) {
       const product = displayedProducts.find((item) => String(item.id) === moveButton.dataset.productId);

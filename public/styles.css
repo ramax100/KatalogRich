@@ -478,3 +478,23 @@ footer a { text-decoration: none; }
 /* Pratinjau harga yang diketik (format Indonesia) */
 #productPricePreview.valid { color: #178a4c; font-weight: 750; }
 #productPricePreview.invalid { color: #c74557; font-weight: 750; }
+
+/* === Pencarian & visibilitas produk === */
+.product-list-toolbar { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+.product-search-field { position: relative; flex: 1 1 auto; display: flex; align-items: center; }
+.product-search-field > svg { position: absolute; left: 12px; width: 16px; height: 16px; color: #8ea0bd; pointer-events: none; }
+.product-search-field input { width: 100%; padding: 10px 14px 10px 36px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, .28); background: rgba(15, 23, 42, .45); color: inherit; font: inherit; font-size: 14px; }
+.product-search-field input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, .16); }
+.product-search-field input::placeholder { color: #7c8aa5; }
+.product-search-field input:disabled, #productVisibilityFilter:disabled { opacity: .55; cursor: not-allowed; }
+#productVisibilityFilter { padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, .28); background: rgba(15, 23, 42, .45); color: inherit; font: inherit; font-size: 13.5px; flex: 0 0 auto; }
+#productVisibilityFilter:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, .16); }
+.product-row.is-hidden { opacity: .55; }
+.product-row.is-hidden:hover { opacity: .8; }
+.product-hidden-badge { font-size: 10.5px; font-weight: 700; letter-spacing: .2px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: rgba(148, 163, 184, .18); color: #a9b6cc; white-space: nowrap; }
+.product-visibility.is-visible { color: #38bdf8; }
+.product-row-actions .product-visibility:not(.is-visible) { color: #a9b6cc; }
+@media (max-width: 640px) {
+  .product-list-toolbar { flex-direction: column; align-items: stretch; }
+  #productVisibilityFilter { width: 100%; }
+}

@@ -15,7 +15,6 @@ import {
 import {
   MAX_PRODUCTS,
   catalogListText,
-  getProductByOrder,
   getProducts,
   getPopularProducts,
   incrementProductView,
@@ -121,8 +120,50 @@ async function getCatalogPage(botId, kind, offset = 0, state = {}) {
   return {
     products: pageProducts,
     title,
+    startNumber: safePageOffset + 1,
     keyboard: pageKeyboard(kind, safePageOffset, hasMore, state)
   };
+}
+
+// Konteks menu mencatat daftar mana yang barusan tampil sehingga angka polos
+// berikut dibaca pada daftar yang sama: nomor mengikuti URUTAN TAMPIL (produk
+// tersembunyi tidak pernah menyisakan lubang nomor). Nilai disimpan sebagai
+// teks pendek; format lama ('products' / 'categories') tetap valid.
+function contextForPage(kind, state = {}) {
+  if (kind === 'popular') return 'products:popular';
+  if (kind === 'category') {
+    const categoryId = Number(state.categoryId);
+    return Number.isSafeInteger(categoryId) && categoryId > 0 ? `products:category:${categoryId}` : 'products';
+  }
+  if (kind === 'search') {
+    const query = compactSearchQuery(state.query);
+    return query ? `products:search:${query}` : 'products';
+  }
+  return 'products';
+}
+
+// Ambil produk ke-N dari daftar yang sama dengan yang barusan ditampilkan ke
+// customer. Urutan query persis sama dengan pembuatan halaman (sort_order.asc,
+// atau peringkat populer), sehingga nomor [N] di pesan selalu produk ke-N di
+// daftar tersebut.
+async function findProductByListNumber(botId, context, number) {
+  const position = Number(number);
+  if (!Number.isSafeInteger(position) || position < 1) return null;
+  const page = { limit: 1, offset: position - 1 };
+  if (typeof context === 'string') {
+    if (context === 'products:popular') {
+      return (await getPopularProducts(botId, page))[0] || null;
+    }
+    if (context.startsWith('products:category:')) {
+      const categoryId = Number(context.slice('products:category:'.length));
+      if (Number.isSafeInteger(categoryId) && categoryId > 0) {
+        return (await getProducts(botId, { activeOnly: true, categoryId, ...page }))[0] || null;
+      }
+    } else if (context.startsWith('products:search:')) {
+      return (await getProducts(botId, { activeOnly: true, query: context.slice('products:search:'.length), ...page }))[0] || null;
+    }
+  }
+  return (await getProducts(botId, { activeOnly: true, ...page }))[0] || null;
 }
 
 // Catat konteks menu yang baru ditampilkan (best effort — kegagalan pencatatan
@@ -135,16 +176,16 @@ async function noteMenuContext(botId, chatId, context) {
 
 async function sendCatalogPage(token, chatId, botId, kind = 'catalog', offset = 0, state = {}) {
   const page = await getCatalogPage(botId, kind, offset, state);
-  const delivered = await sendTelegramMessage(token, chatId, catalogListText(page.products, page.title), page.keyboard);
-  if (delivered) await noteMenuContext(botId, chatId, 'products');
+  const delivered = await sendTelegramMessage(token, chatId, catalogListText(page.products, page.title, page.startNumber), page.keyboard);
+  if (delivered) await noteMenuContext(botId, chatId, contextForPage(kind, state));
   return delivered;
 }
 
 async function editCatalogPage(token, message, botId, kind, offset = 0, state = {}) {
   if (!message?.chat?.id || !message?.message_id) return false;
   const page = await getCatalogPage(botId, kind, offset, state);
-  const delivered = await editTelegramMessage(token, message.chat.id, message.message_id, catalogListText(page.products, page.title), page.keyboard);
-  if (delivered) await noteMenuContext(botId, message.chat.id, 'products');
+  const delivered = await editTelegramMessage(token, message.chat.id, message.message_id, catalogListText(page.products, page.title, page.startNumber), page.keyboard);
+  if (delivered) await noteMenuContext(botId, message.chat.id, contextForPage(kind, state));
   return delivered;
 }
 
@@ -304,7 +345,9 @@ export default async function telegramWebhook(req, res) {
         }
         // Nomor di luar daftar kategori → lanjut dibaca sebagai nomor produk.
       }
-      const product = await getProductByOrder(settings.bot_id, numberMatch[1], { activeOnly: true });
+      // Nomor dibaca pada daftar yang sama dengan yang barusan tampil
+      // (katalog utama, populer, kategori, atau hasil pencarian).
+      const product = await findProductByListNumber(settings.bot_id, menu?.context, numberMatch[1]);
       if (!product) {
         const delivered = await sendTelegramMessage(token, message.chat.id, 'Nomor produk tidak ditemukan. Ketik /katalog untuk melihat daftar produk.');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });

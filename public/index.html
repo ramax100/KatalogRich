@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Katalog Rich Store — Panel Admin Katalog Telegram</title>
-    <link rel="stylesheet" href="/styles.css?v=20260725-harga1" />
+    <link rel="stylesheet" href="/styles.css?v=20260725-cari1" />
   </head>
   <body>
     <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
@@ -313,6 +313,19 @@
 
               <article class="product-list-card">
                 <div class="product-list-head"><div><h3>Produk aktif</h3><p id="productListCaption">Hubungkan bot untuk melihat katalog.</p></div><span id="productCount" class="product-count">0</span></div>
+                <div class="product-list-toolbar">
+                  <label class="visually-hidden" for="productSearch">Cari produk</label>
+                  <div class="product-search-field">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m13.3 13.3 3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <input id="productSearch" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Cari nama atau deskripsi produk…" disabled />
+                  </div>
+                  <label class="visually-hidden" for="productVisibilityFilter">Filter visibilitas produk</label>
+                  <select id="productVisibilityFilter" disabled>
+                    <option value="active" selected>Produk aktif</option>
+                    <option value="hidden">Tersembunyi</option>
+                    <option value="all">Semua produk</option>
+                  </select>
+                </div>
                 <div id="productEmptyState" class="product-empty"><span class="product-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 7.5A2.5 2.5 0 0 1 8 5h8a2.5 2.5 0 0 1 2.5 2.5v10A2.5 2.5 0 0 1 16 20H8a2.5 2.5 0 0 1-2.5-2.5v-10Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 10h6M9 14h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><strong>Belum ada produk</strong><p>Produk yang Anda tambahkan akan muncul di sini dan di Telegram.</p></div>
                 <div id="productList" class="product-list" aria-live="polite"></div>
               </article>
@@ -334,6 +347,6 @@
         <footer><span>© 2026 Katalog Rich Store</span><span>•</span><a href="#">Privasi &amp; keamanan</a></footer>
       </main>
     </div>
-    <script src="/app.js?v=20260725-harga1"></script>
+    <script src="/app.js?v=20260725-cari1"></script>
   </body>
 </html>

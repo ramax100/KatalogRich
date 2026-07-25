@@ -7,7 +7,7 @@ import {
   getTelegramSettings,
   isBotSessionAuthorized
 } from '../lib/telegram-settings.js';
-import { MAX_PRODUCTS, createProduct, deleteProduct, getProductById, getProducts, moveProduct, updateProduct, updateProductCategory, updateProductPopularity } from '../lib/catalog-products.js';
+import { MAX_PRODUCTS, createProduct, deleteProduct, getProductById, getProducts, moveProduct, updateProduct, updateProductActive, updateProductCategory, updateProductPopularity } from '../lib/catalog-products.js';
 import { deleteStorageImage, uploadProductImage } from '../lib/product-images.js';
 import { getCategoryById } from '../lib/catalog-categories.js';
 
@@ -81,6 +81,13 @@ export default async function products(req, res) {
       const fullEdit = ['name', 'price', 'description', 'imageData'].some((key) => Object.hasOwn(body, key));
       if (!fullEdit && Object.hasOwn(body, 'isPopular')) {
         const product = await updateProductPopularity(authorization.botId, body.id, body.isPopular);
+        return sendJson(res, 200, { ok: true, product });
+      }
+      // Toggle sembunyikan/tampilkan produk — harus dicek sebelum fallback
+      // categoryId agar body { id, isActive } tidak salah dibaca perubahan
+      // kategori (yang akan mengosongkan kategori produk).
+      if (!fullEdit && Object.hasOwn(body, 'isActive')) {
+        const product = await updateProductActive(authorization.botId, body.id, body.isActive);
         return sendJson(res, 200, { ok: true, product });
       }
       if (!fullEdit) {
