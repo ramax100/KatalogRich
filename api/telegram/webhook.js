@@ -282,7 +282,11 @@ function parsePageCallback(data) {
   return null;
 }
 
-async function sendProductDetail(token, chatId, botId, product, whatsappNumber) {
+function productListContextOrDefault(context) {
+  return typeof context === 'string' && (context === 'products' || context.startsWith('products:')) ? context : 'products';
+}
+
+async function sendProductDetail(token, chatId, botId, product, whatsappNumber, listContext = 'products') {
   if (product.imageUrl) {
     const photoSent = await sendTelegramVisual(token, chatId, product.imageUrl);
     if (!photoSent) return false;
@@ -301,7 +305,10 @@ async function sendProductDetail(token, chatId, botId, product, whatsappNumber) 
     text: `${productDetailText(product)}${contactHint}`,
     replyMarkup
   }));
-  if (delivered) await noteMenuContext(botId, chatId, 'products');
+  // Detail produk bukan daftar baru, jadi pertahankan konteks daftar produk
+  // terakhir. Dengan begitu setelah membuka produk dari kategori/pencarian,
+  // angka berikutnya tetap merujuk daftar yang sama, bukan katalog utama.
+  if (delivered) await noteMenuContext(botId, chatId, productListContextOrDefault(listContext));
   return delivered;
 }
 
@@ -430,23 +437,30 @@ export default async function telegramWebhook(req, res) {
       // Konteks ditimpa setiap kali bot menampilkan menu baru.
       const menu = await getChatMenuContext(settings.bot_id, message.chat.id).catch(() => null);
       if (menu?.context === 'categories') {
-        const categories = await getCategories(settings.bot_id);
+        const [categories, products] = await Promise.all([
+          getCategories(settings.bot_id),
+          getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS })
+        ]);
         const category = resolveCategoryByNumber(categories, numberMatch[1]);
         if (category) {
           const opened = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: category.id });
           return sendJson(res, opened ? 200 : 502, { ok: opened });
         }
-        // Nomor di luar daftar kategori → lanjut dibaca sebagai nomor produk.
+        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`);
+        if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, 'categories');
+        return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
       // Nomor dibaca pada daftar yang sama dengan yang barusan tampil
       // (katalog utama, populer, kategori, atau hasil pencarian).
-      const product = await findProductByListNumber(settings.bot_id, menu?.context, numberMatch[1]);
+      const listContext = productListContextOrDefault(menu?.context);
+      const product = await findProductByListNumber(settings.bot_id, listContext, numberMatch[1]);
       if (!product) {
         const delivered = await sendTelegramMessage(token, message.chat.id, 'Nomor produk tidak ditemukan. Ketik /katalog untuk melihat daftar produk.');
+        if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, listContext);
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
       await incrementProductView(settings.bot_id, product);
-      const delivered = await sendProductDetail(token, message.chat.id, settings.bot_id, product, settings.whatsapp_number);
+      const delivered = await sendProductDetail(token, message.chat.id, settings.bot_id, product, settings.whatsapp_number, listContext);
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
 
