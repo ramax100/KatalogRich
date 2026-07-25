@@ -40,20 +40,23 @@ svg { display: block; }
 .workspace-pill strong, .workspace-pill small { display: block; }
 .workspace-pill strong { color: #405168; font-size: 11px; }
 .workspace-pill small { margin-top: 3px; color: #96a3b3; font-size: 9px; }
-.side-nav { display: flex; flex-direction: column; gap: 4px; }
-.nav-label { margin: 0 9px 8px; color: #9aa7b6; font-size: 9px; font-weight: 800; letter-spacing: 1px; }
-.nav-item { display: flex; align-items: center; min-height: 40px; gap: 10px; padding: 0 10px; color: #6b7b90; border-radius: 8px; font-size: 12px; font-weight: 650; text-decoration: none; transition: .15s; }
-.nav-item svg { width: 17px; height: 17px; }
+.side-nav { display: flex; flex-direction: column; gap: 3px; }
+.nav-label { margin: 0 9px 7px; color: #9aa7b6; font-size: 9px; font-weight: 800; letter-spacing: 1px; }
+.side-nav .nav-label ~ .nav-label { margin-top: 17px; }
+.nav-item { position: relative; display: flex; align-items: center; min-height: 40px; gap: 10px; padding: 0 10px; color: #6b7b90; border-radius: 8px; font-size: 12px; font-weight: 650; text-decoration: none; transition: .15s; }
+.nav-item > svg { width: 17px; height: 17px; flex: 0 0 auto; }
 .nav-item:hover { color: #3a6da6; background: #f3f8fe; }
-.nav-item.active { color: #216dcc; background: var(--blue-soft); }
-.nav-item.muted { color: #a6b1bd; cursor: default; }
-.nav-item em { margin-left: auto; padding: 2px 5px; color: #a0adbb; background: #f1f3f6; border-radius: 4px; font-size: 8px; font-style: normal; }
+.nav-item.active { color: #216dcc; background: var(--blue-soft); font-weight: 750; }
+.nav-item.active::after { content: ""; width: 6px; height: 6px; margin-left: auto; background: var(--blue); border-radius: 50%; }
+.nav-item.muted { color: #a6b1bd; cursor: not-allowed; }
+.nav-item.muted:hover { color: #a6b1bd; background: transparent; }
+.nav-chip { margin-left: auto; padding: 3px 7px; color: var(--yellow); background: var(--yellow-soft); border: 1px solid #f3e2bd; border-radius: 20px; font-size: 8px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; }
 .sidebar-bottom { margin-top: auto; }
 .progress-card { padding: 11px; background: #f7f9fc; border: 1px solid var(--line); border-radius: 9px; }
 .progress-card-head { display: flex; justify-content: space-between; color: #708095; font-size: 9px; font-weight: 750; }
 .progress-card-head strong { color: var(--blue); }
 .progress-track { height: 4px; margin: 8px 0 6px; overflow: hidden; background: #e4eaf2; border-radius: 20px; }
-.progress-track span { display: block; width: 25%; height: 100%; background: var(--blue); border-radius: inherit; }
+.progress-track span { display: block; height: 100%; background: var(--blue); border-radius: inherit; transition: width .45s ease; }
 .progress-card p { margin: 0; color: #99a6b5; font-size: 9px; line-height: 1.4; }
 .help-link { display: flex; align-items: center; gap: 7px; margin-top: 10px; padding: 5px 7px; color: #8a99aa; font-size: 10px; text-decoration: none; }
 .help-link > svg { width: 12px; margin-left: auto; }
@@ -391,3 +394,24 @@ footer a { text-decoration: none; }
 @media (max-width:430px) { .broadcast-actions { align-items:stretch; flex-direction:column; } .broadcast-actions button { width:100%; } }
 .content[data-active-panel="broadcast"] { padding-top: 30px; }
 @media (max-width:760px) { .content[data-active-panel="broadcast"] { padding-top: 25px; } }
+
+/* Perapian menu: tab mobile dengan ikon, tanpa scrollbar yang mengganggu */
+@media (max-width: 760px) {
+  .mobile-tabs { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .mobile-tabs::-webkit-scrollbar { display: none; }
+  .mobile-tab { display: inline-flex; align-items: center; gap: 5px; height: 31px; }
+  .mobile-tab svg { width: 12px; height: 12px; flex: 0 0 auto; }
+  .mobile-tab.active svg { color: var(--blue); }
+}
+
+/* Perbaikan layout mobile: sidebar & konten ditumpuk vertikal.
+   Sebelumnya .shell tetap flex row dengan sidebar width:100%, sehingga konten
+   terdorong keluar layar dan halaman ter-zoom out. */
+@media (max-width: 760px) {
+  .shell { flex-direction: column; }
+  .sidebar { flex: 0 0 auto; width: 100%; border-right: 0; border-bottom: 1px solid var(--line); }
+  .main-content { width: 100%; margin-left: 0; }
+  .topbar { height: 52px; }
+  .breadcrumbs span, .breadcrumbs i { display: none; }
+  .breadcrumbs strong { font-size: 12px; }
+}

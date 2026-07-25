@@ -75,9 +75,16 @@
   const breadcrumbCurrent = document.querySelector('#breadcrumbCurrent');
   const content = document.querySelector('.content');
   const menuSections = [...document.querySelectorAll('[data-menu-section]')];
+  const workspaceAvatar = document.querySelector('#workspaceAvatar');
+  const workspaceName = document.querySelector('#workspaceName');
+  const workspaceMeta = document.querySelector('#workspaceMeta');
+  const setupProgressCount = document.querySelector('#setupProgressCount');
+  const setupProgressBar = document.querySelector('#setupProgressBar');
+  const setupProgressText = document.querySelector('#setupProgressText');
   const formatPattern = /^\d{5,15}:[A-Za-z0-9_-]{20,}$/;
   let isWelcomeEnabled = false;
   let isCatalogEnabled = false;
+  let isBotConnected = false;
   let isCategoryEnabled = false;
   let isWhatsAppEnabled = false;
   let productImageData = '';
@@ -505,9 +512,48 @@
       row.append(icon, body, actions);
       productList.append(row);
     });
+    updateSetupProgress();
+  }
+
+  // Kartu progress sidebar mengikuti kondisi nyata: bot terhubung, welcome
+  // terisi, minimal satu produk, dan nomor WhatsApp tersimpan.
+  function updateSetupProgress() {
+    if (!setupProgressCount || !setupProgressBar || !setupProgressText) return;
+    const steps = [
+      isBotConnected,
+      isBotConnected && isWelcomeEnabled && Boolean(welcomeText.value.trim()),
+      isBotConnected && isCatalogEnabled && displayedProducts.length > 0,
+      isBotConnected && isWhatsAppEnabled && Boolean(whatsappNumber.value.trim())
+    ];
+    const done = steps.filter(Boolean).length;
+    const captions = [
+      'Hubungkan bot Anda untuk memulai.',
+      'Atur pesan welcome untuk customer.',
+      'Tambahkan produk pertama Anda.',
+      'Simpan nomor WhatsApp pemesanan.',
+      'Semua langkah selesai. Katalog siap digunakan.'
+    ];
+    setupProgressCount.textContent = `${done} / ${steps.length}`;
+    setupProgressBar.style.width = `${(done / steps.length) * 100}%`;
+    setupProgressText.textContent = captions[done];
+  }
+
+  function updateWorkspaceCard(bot) {
+    if (!workspaceAvatar || !workspaceName || !workspaceMeta) return;
+    if (bot) {
+      workspaceAvatar.textContent = (bot.firstName || 'K').trim().charAt(0).toUpperCase() || 'K';
+      workspaceName.textContent = bot.username ? `@${bot.username}` : (bot.firstName || 'Katalog Saya');
+      workspaceMeta.textContent = 'Webhook aktif';
+      return;
+    }
+    workspaceAvatar.textContent = 'K';
+    workspaceName.textContent = 'Katalog Saya';
+    workspaceMeta.textContent = 'Ruang kerja utama';
   }
 
   function showConnected(bot) {
+    isBotConnected = true;
+    updateWorkspaceCard(bot);
     const title = bot.username ? `@${bot.username} berhasil terhubung` : `${bot.firstName} berhasil terhubung`;
     const details = bot.username
       ? `${bot.firstName} · Webhook Telegram aktif dan siap menerima /start.`
@@ -523,9 +569,12 @@
     nextSection.style.borderStyle = 'solid';
     nextSection.style.borderColor = '#d8ebdf';
     setDiagnosticEnabled(true);
+    updateSetupProgress();
   }
 
   function showDisconnected() {
+    isBotConnected = false;
+    updateWorkspaceCard(null);
     banner.classList.add('hidden');
     ctaText.textContent = 'Verifikasi & hubungkan';
     nextLock.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="8.5" width="11" height="8" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Menunggu koneksi bot';
@@ -538,6 +587,7 @@
     setDiagnosticEnabled(true);
     diagnosticState.textContent = 'Diagnostik tetap dapat memeriksa bot terakhir meski sesi sudah berakhir.';
     clearWelcomeError();
+    updateSetupProgress();
   }
 
   async function request(url, options = {}) {
@@ -556,6 +606,7 @@
     await loadProducts();
     await loadWhatsApp();
     await loadBroadcastAudience();
+    updateSetupProgress();
   }
 
   async function loadWelcome() {
@@ -838,6 +889,7 @@
       updateWelcomePreview();
       welcomeSaveState.textContent = '✓ Pesan welcome berhasil disimpan.';
       welcomeSaveState.classList.add('success');
+      updateSetupProgress();
     } catch {
       showWelcomeError('Tidak dapat menyimpan perubahan. Periksa koneksi lalu coba lagi.');
     } finally {
@@ -913,6 +965,7 @@
       whatsappNumber.value = data.whatsappNumber;
       whatsappState.textContent = '✓ Nomor WhatsApp tersimpan. Tombol Pesan sekarang sudah aktif.';
       whatsappState.classList.add('success');
+      updateSetupProgress();
     } catch {
       whatsappState.textContent = 'Nomor WhatsApp belum dapat disimpan. Coba lagi.';
     } finally {
@@ -1098,6 +1151,7 @@
         setBroadcastEnabled(false, 0, 'disconnected');
         setDiagnosticEnabled(true);
         diagnosticState.textContent = 'Diagnostik dapat memeriksa bot yang terakhir dikonfigurasi.';
+        updateSetupProgress();
       }
     } catch {
       setWelcomeState(false);
@@ -1105,6 +1159,7 @@
       setBroadcastEnabled(false, 0, 'disconnected');
       setDiagnosticEnabled(true);
       diagnosticState.textContent = 'Diagnostik dapat memeriksa bot yang terakhir dikonfigurasi.';
+      updateSetupProgress();
     }
   })();
 })();
