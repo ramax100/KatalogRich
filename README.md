@@ -14,7 +14,7 @@
 - **Login admin** — seluruh panel & API terkunci sesi login (12 jam), dengan pembatasan percobaan login.
 - **Hubungkan bot sekali klik** — tempel token BotFather, webhook Telegram terpasang otomatis.
 - **Multi bot** — kelola banyak bot dari satu panel: daftar bot, ubah token, hapus bot (katalog ikut terhapus aman).
-- **Pesan Welcome** — sapaan `/start` dengan variabel `{mention}` (nama bisa diklik ke profil), `{name}`, `{username}`, `{id}`, `{first_name}`, dll. + pratinjau langsung.
+- **Pesan Welcome** — sapaan `/start` dengan variabel `{mention}` (nama bisa diklik ke profil), `{name}`, `{username}`, `{id}`, `{first_name}`, dll., bisa disertai **gambar** (dikirim sebelum teks) + pratinjau langsung.
 - **Katalog Produk** — tambah/edit/hapus produk (kapasitas besar hingga **5.000 produk**), foto **opsional**, kategori, produk populer, dan atur urutan dengan **seret & letakkan (drag & drop)** atau tombol naik.
 - **Pencarian & sembunyikan produk** — cari produk langsung dari panel, dan sembunyikan produk tanpa menghapusnya; produk tersembunyi hilang dari katalog Telegram dan nomor urut di bot tetap rapi berurutan.
 - **Kirim Pesan (broadcast)** — kirim info promo ke semua customer, bisa **disertai gambar** (foto + caption).

@@ -9,9 +9,10 @@ import {
   safeSettings,
   updateWelcomeText
 } from '../lib/telegram-settings.js';
+import { deleteStorageImage, uploadProductImage } from '../lib/product-images.js';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '12kb' } }
+  api: { bodyParser: { sizeLimit: '3mb' } }
 };
 
 function requireAuthorizedSettings(req) {
@@ -44,8 +45,9 @@ export default async function welcome(req, res) {
     }
 
     let welcomeText = '';
+    let body;
     try {
-      const body = getJsonBody(req);
+      body = getJsonBody(req);
       welcomeText = typeof body.welcomeText === 'string' ? body.welcomeText.trim() : '';
     } catch {
       return sendJson(res, 400, { ok: false, message: 'Data pesan tidak valid.' });
@@ -54,7 +56,21 @@ export default async function welcome(req, res) {
     if (!welcomeText) return sendJson(res, 422, { ok: false, message: 'Pesan welcome tidak boleh kosong.' });
     if (welcomeText.length > 4096) return sendJson(res, 422, { ok: false, message: 'Pesan welcome maksimal 4.096 karakter.' });
 
-    const updated = await updateWelcomeText(settings.bot_id, welcomeText);
+    // Gambar welcome opsional: unggah bila ada imageData baru; removeImage
+    // menghapus gambar lama; gambar baru yang terunggah selalu menang.
+    // Kolom welcome_image_url hanya disentuh saat ada aksi gambar — simpan
+    // teks biasa tetap aman walau migrasi kolom belum dijalankan.
+    const uploadedImage = await uploadProductImage(settings.bot_id, body.imageData);
+    const removeImage = body.removeImage === true && !uploadedImage;
+    const imageTouched = Boolean(uploadedImage) || removeImage;
+    const nextImageUrl = uploadedImage || (removeImage ? null : (settings.welcome_image_url || null));
+    const updated = imageTouched
+      ? await updateWelcomeText(settings.bot_id, welcomeText, { imageUrl: nextImageUrl })
+      : await updateWelcomeText(settings.bot_id, welcomeText);
+    // Bersihkan file gambar lama yang tergantikan/dihapus (best effort).
+    if (imageTouched && settings.welcome_image_url && settings.welcome_image_url !== nextImageUrl) {
+      await deleteStorageImage(settings.welcome_image_url).catch(() => false);
+    }
     return sendJson(res, 200, { ok: true, settings: safeSettings(updated) });
   } catch (error) {
     if (error instanceof SettingsConfigurationError || error instanceof SettingsStorageError) {

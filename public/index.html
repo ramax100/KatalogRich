@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Katalog Rich Store — Panel Admin Katalog Telegram</title>
-    <link rel="stylesheet" href="/styles.css?v=20260725-welcome1" />
+    <link rel="stylesheet" href="/styles.css?v=20260725-wimage1" />
   </head>
   <body>
     <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
@@ -224,6 +224,11 @@
                     <button type="button" class="variable-chip" data-variable="{first_name}" disabled title="Nama depan customer">{first_name}</button>
                     <button type="button" class="variable-chip" data-variable="{full_name}" disabled title="Nama lengkap customer">{full_name}</button>
                   </div>
+                  <div class="welcome-attach">
+                    <input id="welcomeImage" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled />
+                    <label id="welcomeImagePicker" class="image-picker welcome-image-picker disabled" for="welcomeImage"><span class="image-picker-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5v-9Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.45" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m6.5 16 3.1-3 2.2 2 1.4-1.4 3.3 3.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><strong id="welcomeImageLabel">Tambah gambar welcome (opsional)</strong><small>JPG/PNG/WEBP · maks. 1,5 MB · dikirim sebelum teks welcome</small></span></label>
+                    <div id="welcomeImagePreview" class="image-preview welcome-image-preview hidden"><img id="welcomeImagePreviewImg" alt="Pratinjau gambar welcome" /><button id="clearWelcomeImage" type="button" aria-label="Hapus gambar welcome">×</button></div>
+                  </div>
                   <p id="welcomeError" class="form-error hidden" role="alert"></p>
                   <div class="welcome-actions">
                     <p id="welcomeSaveState" class="save-state">Sambungkan bot untuk mengedit pesan.</p>
@@ -239,6 +244,7 @@
                 <div class="preview-top"><span>PRATINJAU DI TELEGRAM</span><span class="preview-dot"></span></div>
                 <div class="phone-chat">
                   <div class="chat-head"><span class="bot-avatar">K</span><span><strong id="previewBotName">Katalog Bot</strong><small>bot</small></span></div>
+                  <img id="welcomePreviewImage" class="welcome-preview-image hidden" alt="Pratinjau gambar welcome di Telegram" />
                   <div id="welcomePreviewText" class="message-bubble">Hubungkan bot Anda untuk melihat pratinjau pesan.</div>
                   <button class="catalog-preview-button" type="button" disabled aria-label="Pratinjau tombol Lihat katalog"><span>🛍</span> Lihat katalog</button>
                   <span class="message-time">12:00 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.4 8.4 2.1 2.1L9.4 6.6m1.8 1.8 1 1 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -350,6 +356,6 @@
         <footer><span>© 2026 Katalog Rich Store</span><span>•</span><a href="#">Privasi &amp; keamanan</a></footer>
       </main>
     </div>
-    <script src="/app.js?v=20260725-welcome1"></script>
+    <script src="/app.js?v=20260725-wimage1"></script>
   </body>
 </html>

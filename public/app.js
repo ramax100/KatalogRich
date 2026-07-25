@@ -37,6 +37,13 @@
   const welcomeSaveState = document.querySelector('#welcomeSaveState');
   const welcomeConnectionState = document.querySelector('#welcomeConnectionState');
   const welcomePreviewText = document.querySelector('#welcomePreviewText');
+  const welcomePreviewImage = document.querySelector('#welcomePreviewImage');
+  const welcomeImage = document.querySelector('#welcomeImage');
+  const welcomeImagePicker = document.querySelector('#welcomeImagePicker');
+  const welcomeImageLabel = document.querySelector('#welcomeImageLabel');
+  const welcomeImagePreview = document.querySelector('#welcomeImagePreview');
+  const welcomeImagePreviewImg = document.querySelector('#welcomeImagePreviewImg');
+  const clearWelcomeImageButton = document.querySelector('#clearWelcomeImage');
   const previewBotName = document.querySelector('#previewBotName');
   const variableButtons = [...document.querySelectorAll('.variable-chip')];
 
@@ -115,6 +122,10 @@
   let isWhatsAppEnabled = false;
   let productImageData = '';
   let productImageRemoved = false;
+  let welcomeImageData = '';
+  let welcomeImageRemoved = false;
+  let welcomeImageUrlSaved = '';
+  let welcomeImageFileName = '';
   let categories = [];
   let editingProduct = null;
   // allProducts = sumber kebenaran dari server; displayedProducts = hasil
@@ -266,9 +277,36 @@
     welcomeCharCount.textContent = `${welcomeText.value.length.toLocaleString('id-ID')} / 4.096`;
   }
 
+  // Menggambar ulang lampiran gambar welcome: pratinjau kecil di form, tombol
+  // hapus (× / ↺), label pemilih, dan gambar pada pratinjau ponsel — semuanya
+  // mengikuti kondisi yang akan tersimpan (gambar baru menang atas penandaan).
+  function renderWelcomeAttachments() {
+    const shown = welcomeImageData || welcomeImageUrlSaved;
+    welcomeImagePreview.classList.toggle('hidden', !shown);
+    if (shown) {
+      welcomeImagePreviewImg.src = shown;
+      const markedRemoval = !welcomeImageData && welcomeImageRemoved;
+      welcomeImagePreview.classList.toggle('marked-removal', markedRemoval);
+      clearWelcomeImageButton.textContent = markedRemoval ? '↺' : '×';
+      clearWelcomeImageButton.setAttribute('aria-label', markedRemoval ? 'Batalkan penghapusan gambar' : 'Hapus gambar welcome');
+      welcomeImageLabel.textContent = welcomeImageData
+        ? (welcomeImageFileName || 'Gambar baru terpilih')
+        : 'Gambar saat ini — pilih untuk mengganti';
+    } else {
+      welcomeImagePreview.classList.remove('marked-removal');
+      clearWelcomeImageButton.textContent = '×';
+      welcomeImageLabel.textContent = 'Tambah gambar welcome (opsional)';
+    }
+    const effective = welcomeImageData || (welcomeImageRemoved ? '' : welcomeImageUrlSaved);
+    welcomePreviewImage.classList.toggle('hidden', !effective);
+    if (effective) welcomePreviewImage.src = effective;
+  }
+
   function setWelcomeState(enabled, message = '') {
     isWelcomeEnabled = enabled;
     welcomeText.disabled = !enabled;
+    welcomeImage.disabled = !enabled;
+    welcomeImagePicker.classList.toggle('disabled', !enabled);
     saveWelcomeButton.disabled = !enabled;
     variableButtons.forEach((button) => { button.disabled = !enabled; });
     welcomeConnectionState.classList.toggle('ready', enabled);
@@ -277,6 +315,11 @@
     welcomeSaveState.classList.remove('success');
     if (!enabled) {
       welcomeText.value = '';
+      welcomeImageData = '';
+      welcomeImageRemoved = false;
+      welcomeImageUrlSaved = '';
+      welcomeImage.value = '';
+      renderWelcomeAttachments();
       welcomePreviewText.textContent = 'Hubungkan bot Anda untuk melihat pratinjau pesan.';
       welcomeCharCount.textContent = '0 / 4.096';
     }
@@ -977,6 +1020,10 @@
 
       const settings = data.settings;
       welcomeText.value = settings.welcomeText || '';
+      welcomeImageData = '';
+      welcomeImageRemoved = false;
+      welcomeImageUrlSaved = settings.welcomeImageUrl || '';
+      renderWelcomeAttachments();
       previewBotName.textContent = settings.bot.username ? `@${settings.bot.username}` : settings.bot.firstName;
       updateWelcomePreview();
       setWelcomeState(true, 'Webhook aktif. Perubahan disimpan langsung di server.');
@@ -1310,6 +1357,49 @@
     }
   });
 
+  welcomeImage.addEventListener('change', () => {
+    clearWelcomeError();
+    const file = welcomeImage.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      welcomeImage.value = '';
+      showWelcomeError('Pilih gambar berformat JPG, PNG, atau WEBP.');
+      return;
+    }
+    if (file.size > 1_500_000) {
+      welcomeImage.value = '';
+      showWelcomeError('Ukuran gambar maksimal 1,5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      welcomeImageData = typeof reader.result === 'string' ? reader.result : '';
+      welcomeImageFileName = file.name;
+      welcomeImageRemoved = false;
+      renderWelcomeAttachments();
+    });
+    reader.addEventListener('error', () => {
+      welcomeImage.value = '';
+      showWelcomeError('Gambar belum dapat dibaca. Silakan pilih file lain.');
+    });
+    reader.readAsDataURL(file);
+  });
+
+  clearWelcomeImageButton.addEventListener('click', () => {
+    clearWelcomeError();
+    if (welcomeImageData || welcomeImageRemoved) {
+      // Buang gambar baru yang belum disimpan, atau batalkan penandaan hapus.
+      welcomeImageData = '';
+      welcomeImage.value = '';
+      welcomeImageRemoved = false;
+    } else if (welcomeImageUrlSaved) {
+      // Klik × pada gambar tersimpan menandai gambar untuk dihapus saat
+      // disimpan; klik ↺ pada pratinjau yang meredup membatalkannya.
+      welcomeImageRemoved = true;
+    }
+    renderWelcomeAttachments();
+  });
+
   welcomeForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     clearWelcomeError();
@@ -1322,12 +1412,20 @@
 
     setWelcomeSaving(true);
     try {
-      const { response, data } = await request('/api/welcome', { method: 'POST', body: JSON.stringify({ welcomeText: message }) });
+      const { response, data } = await request('/api/welcome', {
+        method: 'POST',
+        body: JSON.stringify({ welcomeText: message, imageData: welcomeImageData, removeImage: welcomeImageRemoved })
+      });
       if (!response.ok || !data.ok) {
         showWelcomeError(data.message || 'Pesan welcome belum dapat disimpan.');
         return;
       }
       welcomeText.value = data.settings.welcomeText;
+      welcomeImageData = '';
+      welcomeImageRemoved = false;
+      welcomeImageUrlSaved = data.settings.welcomeImageUrl || '';
+      welcomeImage.value = '';
+      renderWelcomeAttachments();
       updateWelcomePreview();
       welcomeSaveState.textContent = '✓ Pesan welcome berhasil disimpan.';
       welcomeSaveState.classList.add('success');

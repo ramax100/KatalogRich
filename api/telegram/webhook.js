@@ -458,6 +458,12 @@ export default async function telegramWebhook(req, res) {
 
     if (!/^\/start(?:\s|$)/i.test(messageText)) return sendJson(res, 200, { ok: true });
     // Customer ini sudah dicatat sebagai penerima Kirim Pesan saat update masuk di atas.
+    // Gambar welcome (opsional) dikirim dulu seperti pada detail produk, lalu
+    // animasi loading berputar dan berubah menjadi teks welcome + tombol.
+    // Kegagalan foto tidak pernah menggagalkan sapaan.
+    if (settings.welcome_image_url) {
+      await sendTelegramPhoto(token, message.chat.id, settings.welcome_image_url).catch(() => false);
+    }
     const welcome = renderWelcomeMessage(settings.welcome_text, message);
     const delivered = await sendWithLoading(token, message.chat.id, 'Menyiapkan sapaan', async () => ({
       text: welcome.text,
