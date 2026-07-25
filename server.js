@@ -101,8 +101,11 @@ async function handleApi(req, res, pathname) {
 
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method || '')) {
     try {
-      // Product photos are base64-encoded JSON and need a larger, strictly bounded body.
-      const maxBytes = pathname === '/api/products' ? 3 * 1024 * 1024 : 32 * 1024;
+      // Foto produk dan gambar Kirim Pesan dienkode base64 dalam JSON sehingga
+      // butuh batas body lebih besar — selaras dengan sizeLimit 3mb di config
+      // bodyParser Vercel kedua endpoint itu.
+      const LARGE_BODY_ENDPOINTS = ['/api/products', '/api/broadcast'];
+      const maxBytes = LARGE_BODY_ENDPOINTS.includes(pathname) ? 3 * 1024 * 1024 : 32 * 1024;
       req.body = await parseBody(req, maxBytes);
     } catch {
       req.body = '{';

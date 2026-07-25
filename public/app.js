@@ -17,6 +17,12 @@
   const broadcastForm = document.querySelector('#broadcastForm');
   const broadcastText = document.querySelector('#broadcastText');
   const broadcastCharCount = document.querySelector('#broadcastCharCount');
+  const broadcastImage = document.querySelector('#broadcastImage');
+  const broadcastImagePicker = document.querySelector('#broadcastImagePicker');
+  const broadcastImageLabel = document.querySelector('#broadcastImageLabel');
+  const broadcastImagePreview = document.querySelector('#broadcastImagePreview');
+  const broadcastImagePreviewImg = document.querySelector('#broadcastImagePreviewImg');
+  const clearBroadcastImageButton = document.querySelector('#clearBroadcastImage');
   const broadcastAudienceBadge = document.querySelector('#broadcastAudienceBadge');
   const broadcastState = document.querySelector('#broadcastState');
   const broadcastError = document.querySelector('#broadcastError');
@@ -109,6 +115,28 @@
   let editingProduct = null;
   let displayedProducts = [];
   let broadcastAudience = 0;
+  let broadcastImageData = '';
+  const BROADCAST_TEXT_LIMIT = 4096;
+  const BROADCAST_CAPTION_LIMIT = 1024;
+
+  function broadcastLimit() {
+    // Dengan gambar, pesan dikirim sebagai caption foto sehingga mengikuti
+    // batas caption Telegram (1.024), bukan batas pesan teks (4.096).
+    return broadcastImageData ? BROADCAST_CAPTION_LIMIT : BROADCAST_TEXT_LIMIT;
+  }
+
+  function updateBroadcastCharCount() {
+    broadcastCharCount.textContent = `${broadcastText.value.length.toLocaleString('id-ID')} / ${broadcastLimit().toLocaleString('id-ID')}`;
+  }
+
+  function clearBroadcastImage() {
+    broadcastImageData = '';
+    broadcastImage.value = '';
+    broadcastImagePreviewImg.removeAttribute('src');
+    broadcastImagePreview.classList.add('hidden');
+    broadcastImageLabel.textContent = 'Tambah gambar (opsional)';
+    updateBroadcastCharCount();
+  }
 
   function showError(message) {
     error.textContent = message;
@@ -169,6 +197,8 @@
   function setBroadcastEnabled(enabled, audience = 0, reason = '') {
     broadcastAudience = enabled ? audience : 0;
     broadcastText.disabled = !enabled;
+    broadcastImage.disabled = !enabled;
+    broadcastImagePicker.classList.toggle('disabled', !enabled);
     sendBroadcastButton.disabled = !enabled || !audience;
     broadcastAudienceBadge.classList.toggle('ready', enabled);
     broadcastAudienceBadge.innerHTML = `<span></span> ${enabled
@@ -176,7 +206,7 @@
       : (reason === 'error' ? 'Daftar customer belum dapat dimuat' : 'Hubungkan bot untuk memuat customer')}`;
     if (!enabled) {
       broadcastText.value = '';
-      broadcastCharCount.textContent = '0 / 4.096';
+      clearBroadcastImage();
       broadcastState.textContent = reason === 'error'
         ? 'Daftar customer belum dapat dimuat. Muat ulang panel atau hubungkan ulang bot Anda.'
         : 'Hubungkan bot terlebih dahulu untuk mengirim pesan ke customer.';
@@ -874,20 +904,69 @@
     }
   });
   broadcastText.addEventListener('input', () => {
-    broadcastCharCount.textContent = `${broadcastText.value.length.toLocaleString('id-ID')} / 4.096`;
+    updateBroadcastCharCount();
+    broadcastError.classList.add('hidden');
+  });
+  broadcastImage.addEventListener('change', () => {
+    broadcastError.classList.add('hidden');
+    const file = broadcastImage.files?.[0];
+    if (!file) {
+      clearBroadcastImage();
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      clearBroadcastImage();
+      showBroadcastError('Pilih gambar berformat JPG, PNG, atau WEBP.');
+      return;
+    }
+    if (file.size > 1_500_000) {
+      clearBroadcastImage();
+      showBroadcastError('Ukuran gambar maksimal 1,5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      broadcastImageData = typeof reader.result === 'string' ? reader.result : '';
+      broadcastImagePreviewImg.src = broadcastImageData;
+      broadcastImagePreview.classList.remove('hidden');
+      broadcastImageLabel.textContent = file.name;
+      updateBroadcastCharCount();
+      if (broadcastText.value.length > BROADCAST_CAPTION_LIMIT) {
+        showBroadcastError(`Pesan Anda ${broadcastText.value.length.toLocaleString('id-ID')} karakter. Caption foto maksimal ${BROADCAST_CAPTION_LIMIT.toLocaleString('id-ID')} karakter — persingkat pesan atau hapus gambar.`);
+      }
+    });
+    reader.addEventListener('error', () => {
+      clearBroadcastImage();
+      showBroadcastError('Gambar belum dapat dibaca. Silakan pilih file lain.');
+    });
+    reader.readAsDataURL(file);
+  });
+  clearBroadcastImageButton.addEventListener('click', () => {
+    clearBroadcastImage();
     broadcastError.classList.add('hidden');
   });
   broadcastForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const message = broadcastText.value.trim();
-    if (!message) {
-      showBroadcastError('Isi pesan terlebih dahulu.');
+    const imageData = broadcastImageData;
+    if (!message && !imageData) {
+      showBroadcastError('Isi pesan atau lampirkan gambar terlebih dahulu.');
       broadcastText.focus();
       return;
     }
-    if (!window.confirm('Kirim pesan ini ke semua customer yang terdaftar?')) return;
+    if (message.length > broadcastLimit()) {
+      showBroadcastError(imageData
+        ? `Caption foto maksimal ${BROADCAST_CAPTION_LIMIT.toLocaleString('id-ID')} karakter.`
+        : `Pesan maksimal ${BROADCAST_TEXT_LIMIT.toLocaleString('id-ID')} karakter.`);
+      broadcastText.focus();
+      return;
+    }
+    if (!window.confirm(imageData
+      ? 'Kirim pesan dengan gambar ini ke semua customer yang terdaftar?'
+      : 'Kirim pesan ini ke semua customer yang terdaftar?')) return;
 
     let offset = 0;
+    let imageUrl = '';
     let totalDelivered = 0;
     let totalFailed = 0;
     let totalBlockedRemoved = 0;
@@ -896,18 +975,24 @@
     try {
       while (offset !== null) {
         broadcastState.textContent = `Mengirim pesan... ${totalDelivered} customer berhasil dikirimi.`;
+        // Gambar hanya dikirim pada batch pertama; server mengunggahnya sekali
+        // dan mengembalikan URL untuk dipakai batch-batch berikutnya.
+        const payload = offset === 0
+          ? { message, offset, ...(imageData ? { imageData } : {}) }
+          : { message, offset, ...(imageUrl ? { imageUrl } : {}) };
         const { response, data } = await request('/api/broadcast', {
-          method: 'POST', body: JSON.stringify({ message, offset })
+          method: 'POST', body: JSON.stringify(payload)
         });
         if (!response.ok || !data.ok) throw new Error(data.message || 'Pesan belum dapat dikirim.');
         totalDelivered += data.delivered || 0;
         totalFailed += data.failed || 0;
         totalBlockedRemoved += data.blockedRemoved || 0;
+        imageUrl = data.imageUrl || imageUrl;
         offset = data.nextOffset;
       }
       const summary = `✓ Selesai. ${totalDelivered} pesan terkirim${totalFailed ? `, ${totalFailed} gagal` : ''}${totalBlockedRemoved ? ` · ${totalBlockedRemoved} customer tidak aktif dibersihkan dari daftar` : ''}.`;
       broadcastText.value = '';
-      broadcastCharCount.textContent = '0 / 4.096';
+      clearBroadcastImage();
       broadcastAudience = 1; // Jaga tombol aktif selama daftar dimuat ulang.
       await loadBroadcastAudience();
       // Tampilkan kembali ringkasan setelah daftar termuat ulang (daftar bisa

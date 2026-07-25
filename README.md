@@ -29,6 +29,7 @@ Panel admin untuk menghubungkan satu atau banyak bot Telegram, mengaktifkan webh
   - Customer yang memblokir bot atau akunnya hilang (error 403/chat tidak ditemukan) otomatis dibersihkan dari daftar kirim berikutnya.
   - Endpoint broadcast **wajib login** (`/api/broadcast` menolak permintaan tanpa sesi admin; tidak ada fallback anonim).
   - Pengiriman bertahap: 40 customer per batch, 10 paralel dengan jeda aman, sesuai batas rate Telegram.
+  - **Dengan gambar**: satu gambar opsional (JPG/PNG/WEBP, maks. 1,5 MB) dikirim sebagai foto Telegram dengan pesan sebagai caption (maks. 1.024 karakter sesuai batas caption Telegram). Gambar diunggah sekali ke Supabase Storage pada batch pertama, batch berikutnya memakai URL yang sama, lalu file otomatis dihapus setelah batch terakhir agar bucket tidak menumpuk file sekali pakai. Endpoint menerima hingga 3 MB body (`sizeLimit` bodyParser 3mb).
 
 ## Arsitektur
 
@@ -104,7 +105,7 @@ Lalu buka [http://localhost:3000](http://localhost:3000). Untuk benar-benar mene
 │   ├── bot/connect.js            # Verifikasi token, multi bot (tambah/ubah token), setWebhook
 │   ├── bot/remove.js             # Hapus bot (bot aktif saja) + matikan webhook
 │   ├── telegram/webhook.js       # Menangani /start, katalog, pencarian, dan pencatatan customer
-│   ├── broadcast.js              # Kirim Pesan ke semua customer (wajib sesi admin)
+│   ├── broadcast.js              # Kirim Pesan teks/gambar ke semua customer (wajib sesi admin)
 │   ├── bots.js                   # Daftar bot terhubung untuk pengelola multi bot
 │   ├── products.js               # CRUD produk + foto
 │   ├── categories.js             # Kategori produk

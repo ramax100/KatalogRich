@@ -458,3 +458,8 @@ footer a { text-decoration: none; }
 .logout-button:hover { color: var(--red); background: var(--red-soft); border-color: #f3d5d9; }
 .logout-button svg { width: 14px; height: 14px; }
 @media (max-width: 760px) { .logout-button { height: 28px; padding: 0 9px; font-size: 9px; } .topbar-actions { gap: 9px; } }
+
+/* Lampiran gambar Kirim Pesan */
+.broadcast-attach { margin-top: 8px; }
+.broadcast-image-picker { min-height: 40px; }
+.broadcast-image-preview { width: 96px; height: 72px; }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Katalink — Hubungkan Bot Telegram</title>
-    <link rel="stylesheet" href="/styles.css?v=20260725-adminlogin1" />
+    <link rel="stylesheet" href="/styles.css?v=20260725-broadcastimg1" />
   </head>
   <body>
     <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
@@ -251,10 +251,15 @@
               <form id="broadcastForm" class="broadcast-form">
                 <div class="broadcast-label-row"><label for="broadcastText">Isi pesan</label><span id="broadcastCharCount">0 / 4.096</span></div>
                 <textarea id="broadcastText" maxlength="4096" disabled placeholder="Contoh: Promo spesial hari ini. Dapatkan diskon untuk produk pilihan Anda."></textarea>
+                <div class="broadcast-attach">
+                  <input id="broadcastImage" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled />
+                  <label id="broadcastImagePicker" class="image-picker broadcast-image-picker disabled" for="broadcastImage"><span class="image-picker-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5v-9Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.45" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m6.5 16 3.1-3 2.2 2 1.4-1.4 3.3 3.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><strong id="broadcastImageLabel">Tambah gambar (opsional)</strong><small>JPG/PNG/WEBP · maks. 1,5 MB · pesan dikirim sebagai caption foto</small></span></label>
+                  <div id="broadcastImagePreview" class="image-preview broadcast-image-preview hidden"><img id="broadcastImagePreviewImg" alt="Pratinjau gambar pesan" /><button id="clearBroadcastImage" type="button" aria-label="Hapus gambar">×</button></div>
+                </div>
                 <p id="broadcastError" class="form-error hidden" role="alert"></p>
                 <div class="broadcast-actions"><p id="broadcastState">Hubungkan bot untuk mengirim pesan.</p><button id="sendBroadcastButton" type="submit" disabled><span class="broadcast-button-text">Kirim ke semua customer</span><span class="broadcast-button-loader" aria-hidden="true"></span></button></div>
               </form>
-              <aside class="broadcast-note"><span class="broadcast-note-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.4c0 4.4-3 7.7-7 9.1-4-1.4-7-4.7-7-9.1V6l7-2.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v4m0 3v.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><div><strong>Pengiriman bertahap</strong><p>Pesan dikirim dalam batch aman agar sesuai batas pengiriman Telegram. Customer yang memblokir bot akan otomatis dinonaktifkan dari daftar kirim berikutnya.</p></div></aside>
+              <aside class="broadcast-note"><span class="broadcast-note-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.4c0 4.4-3 7.7-7 9.1-4-1.4-7-4.7-7-9.1V6l7-2.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v4m0 3v.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><div><strong>Pengiriman bertahap</strong><p>Pesan dikirim dalam batch aman agar sesuai batas pengiriman Telegram, dan bisa disertai satu gambar yang terkirim sebagai foto beserta caption. Customer yang memblokir bot akan otomatis dinonaktifkan dari daftar kirim berikutnya.</p></div></aside>
             </div>
           </section>
 
@@ -329,6 +334,6 @@
         <footer><span>© 2026 Katalink</span><span>•</span><a href="#">Privasi &amp; keamanan</a></footer>
       </main>
     </div>
-    <script src="/app.js?v=20260725-adminlogin1"></script>
+    <script src="/app.js?v=20260725-broadcastimg1"></script>
   </body>
 </html>
