@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Katalog Rich Store — Panel Admin Katalog Telegram</title>
-    <link rel="stylesheet" href="/styles.css?v=20260725-rebrand1" />
+    <link rel="stylesheet" href="/styles.css?v=20260725-harga1" />
   </head>
   <body>
     <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
@@ -298,8 +298,8 @@
                   <input id="productName" type="text" maxlength="100" placeholder="Contoh: Tumbler Minimalis" disabled required />
                   <label for="productCategory">Kategori <span>(opsional)</span></label>
                   <select id="productCategory" disabled><option value="">Tanpa kategori</option></select>
-                  <div class="price-label-row"><label for="productPrice">Harga</label><span>Rupiah (Rp)</span></div>
-                  <div class="price-field"><span>Rp</span><input id="productPrice" type="number" min="0" max="999999999999" step="1" inputmode="numeric" placeholder="50000" disabled required /></div>
+                  <div class="price-label-row"><label for="productPrice">Harga</label><span id="productPricePreview">Rupiah (Rp)</span></div>
+                  <div class="price-field"><span>Rp</span><input id="productPrice" type="text" inputmode="numeric" maxlength="18" placeholder="50.000" disabled required /></div>
                   <label for="productDescription">Deskripsi produk <span>(opsional)</span></label>
                   <textarea id="productDescription" maxlength="2000" placeholder="Jelaskan manfaat atau detail penting produk." disabled></textarea>
                   <label class="photo-field-label" for="productImage">Foto produk <span>(opsional, JPG/PNG/WEBP · maks. 1,5 MB)</span></label>
@@ -334,6 +334,6 @@
         <footer><span>© 2026 Katalog Rich Store</span><span>•</span><a href="#">Privasi &amp; keamanan</a></footer>
       </main>
     </div>
-    <script src="/app.js?v=20260725-rebrand1"></script>
+    <script src="/app.js?v=20260725-harga1"></script>
   </body>
 </html>

@@ -474,3 +474,7 @@ footer a { text-decoration: none; }
 .brand { font-size: 15px; letter-spacing: -.3px; gap: 7px; }
 .brand .brand-mark { width: 29px; height: 29px; flex: 0 0 auto; }
 .brand > span:last-child { white-space: nowrap; }
+
+/* Pratinjau harga yang diketik (format Indonesia) */
+#productPricePreview.valid { color: #178a4c; font-weight: 750; }
+#productPricePreview.invalid { color: #c74557; font-weight: 750; }

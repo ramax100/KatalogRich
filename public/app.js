@@ -48,6 +48,7 @@
   const productName = document.querySelector('#productName');
   const productCategory = document.querySelector('#productCategory');
   const productPrice = document.querySelector('#productPrice');
+  const productPricePreview = document.querySelector('#productPricePreview');
   const productDescription = document.querySelector('#productDescription');
   const productImage = document.querySelector('#productImage');
   const productImagePicker = document.querySelector('#productImagePicker');
@@ -298,6 +299,47 @@
     productError.classList.remove('success');
   }
 
+  // Cermin parsePriceInput di lib/catalog-products.js: menerima 50000, 50.000,
+  // 50,000, 1.500.000, "Rp 50.000"; pemisah + kelompok 3 digit = ribuan, satu
+  // pemisah dengan 1-2 digit = desimal (bagian bulat dipakai).
+  function parsePriceInput(value) {
+    let s = String(value ?? '').trim().toLowerCase();
+    s = s.replace(/^rp\.?\s?/, '').replace(/\s+/g, '');
+    if (!/^\d[\d.,]*$/.test(s)) return null;
+    if (s.includes('.') && s.includes(',')) {
+      const decimalSep = s.lastIndexOf('.') > s.lastIndexOf(',') ? '.' : ',';
+      const thousandSep = decimalSep === '.' ? ',' : '.';
+      const intPart = s.split(decimalSep)[0].split(thousandSep).join('');
+      return /^\d+$/.test(intPart) ? Number(intPart) : null;
+    }
+    const sep = s.includes('.') ? '.' : (s.includes(',') ? ',' : null);
+    if (!sep) return /^\d+$/.test(s) ? Number(s) : null;
+    const groups = s.split(sep);
+    const looksLikeThousands = groups.length > 1
+      && groups[0].length >= 1 && groups[0].length <= 3
+      && groups.slice(1).every((group) => /^\d{3}$/.test(group));
+    if (looksLikeThousands) return Number(groups.join(''));
+    if (groups.length === 2 && /^\d{1,2}$/.test(groups[1])) return Number(groups[0]);
+    return null;
+  }
+
+  function updatePricePreview() {
+    const raw = productPrice.value.trim();
+    productPricePreview.classList.remove('valid', 'invalid');
+    if (!raw) {
+      productPricePreview.textContent = 'Rupiah (Rp)';
+      return;
+    }
+    const parsed = parsePriceInput(raw);
+    if (parsed === null || parsed > 999999999999) {
+      productPricePreview.textContent = 'format belum dikenali';
+      productPricePreview.classList.add('invalid');
+      return;
+    }
+    productPricePreview.textContent = `= ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(parsed)}`;
+    productPricePreview.classList.add('valid');
+  }
+
   function showProductError(message, success = false) {
     productError.textContent = message;
     productError.classList.remove('hidden');
@@ -325,6 +367,7 @@
   function resetProductEditor() {
     editingProduct = null;
     productForm.reset();
+    updatePricePreview();
     clearProductImage();
     productFormTitle.textContent = 'Tambah produk';
     productFormHint.textContent = 'Nama, harga, dan deskripsi akan tampil di bot.';
@@ -338,6 +381,7 @@
     productName.value = product.name;
     productCategory.value = product.categoryId ? String(product.categoryId) : '';
     productPrice.value = String(product.price);
+    updatePricePreview();
     productDescription.value = product.description || '';
     clearProductImage();
     productFormTitle.textContent = 'Edit produk';
@@ -1029,7 +1073,11 @@
       welcomeSaveState.classList.remove('success');
     }
   });
-  [productName, productPrice, productDescription, productCategory].forEach((field) => field.addEventListener('input', clearProductError));
+  [productName, productDescription, productCategory].forEach((field) => field.addEventListener('input', clearProductError));
+  productPrice.addEventListener('input', () => {
+    clearProductError();
+    updatePricePreview();
+  });
   productImage.addEventListener('change', () => {
     clearProductError();
     const file = productImage.files?.[0];
@@ -1253,15 +1301,15 @@
     clearProductError();
     const name = productName.value.trim();
     const categoryId = productCategory.value || null;
-    const price = Number(productPrice.value);
+    const price = parsePriceInput(productPrice.value);
     const description = productDescription.value.trim();
     if (name.length < 2) {
       showProductError('Masukkan nama produk minimal 2 karakter.');
       productName.focus();
       return;
     }
-    if (!Number.isSafeInteger(price) || price < 0) {
-      showProductError('Masukkan harga produk dalam angka Rupiah.');
+    if (price === null || price > 999999999999) {
+      showProductError('Harga belum valid. Contoh penulisan: 50000, 50.000, atau 50,000.');
       productPrice.focus();
       return;
     }
