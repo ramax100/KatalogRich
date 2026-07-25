@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import connectBot from './api/bot/connect.js';
 import disconnectBot from './api/bot/disconnect.js';
+import removeBot from './api/bot/remove.js';
 import session from './api/session.js';
 import telegramWebhook from './api/telegram/webhook.js';
 import welcome from './api/welcome.js';
@@ -12,6 +13,7 @@ import contact from './api/contact.js';
 import categories from './api/categories.js';
 import diagnostics from './api/diagnostics.js';
 import broadcast from './api/broadcast.js';
+import bots from './api/bots.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
@@ -31,6 +33,7 @@ const MIME_TYPES = {
 const apiHandlers = new Map([
   ['/api/bot/connect', connectBot],
   ['/api/bot/disconnect', disconnectBot],
+  ['/api/bot/remove', removeBot],
   ['/api/session', session],
   ['/api/telegram/webhook', telegramWebhook],
   ['/api/welcome', welcome],
@@ -38,7 +41,8 @@ const apiHandlers = new Map([
   ['/api/contact', contact],
   ['/api/categories', categories],
   ['/api/diagnostics', diagnostics],
-  ['/api/broadcast', broadcast]
+  ['/api/broadcast', broadcast],
+  ['/api/bots', bots]
 ]);
 
 function setStaticSecurityHeaders(res) {

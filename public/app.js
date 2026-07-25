@@ -78,6 +78,12 @@
   const workspaceAvatar = document.querySelector('#workspaceAvatar');
   const workspaceName = document.querySelector('#workspaceName');
   const workspaceMeta = document.querySelector('#workspaceMeta');
+  const addBotButton = document.querySelector('#addBotButton');
+  const botList = document.querySelector('#botList');
+  const botListEmpty = document.querySelector('#botListEmpty');
+  const botManagerState = document.querySelector('#botManagerState');
+  const tokenFormTitle = document.querySelector('#tokenFormTitle');
+  const tokenFormHint = document.querySelector('#tokenFormHint');
   const setupProgressCount = document.querySelector('#setupProgressCount');
   const setupProgressBar = document.querySelector('#setupProgressBar');
   const setupProgressText = document.querySelector('#setupProgressText');
@@ -85,6 +91,9 @@
   let isWelcomeEnabled = false;
   let isCatalogEnabled = false;
   let isBotConnected = false;
+  let expectedBotId = null;
+  let managedBots = [];
+  let activeBotId = null;
   let isCategoryEnabled = false;
   let isWhatsAppEnabled = false;
   let productImageData = '';
@@ -515,6 +524,116 @@
     updateSetupProgress();
   }
 
+  // === Multi bot: daftar bot, ubah token, hapus bot ===
+
+  function setBotManagerMessage(message, kind = '') {
+    if (!botManagerState) return;
+    botManagerState.textContent = message;
+    botManagerState.classList.toggle('bot-manager-state-error', kind === 'error');
+    botManagerState.classList.toggle('bot-manager-state-success', kind === 'success');
+  }
+
+  function setTokenTarget(bot) {
+    expectedBotId = bot ? String(bot.id) : null;
+    if (bot) {
+      const label = bot.username ? `@${bot.username}` : (bot.firstName || 'bot');
+      tokenFormTitle.textContent = `Ubah token ${label}`;
+      tokenFormHint.textContent = 'Tempel token terbaru untuk bot ini, lalu verifikasi. Bot lain dan seluruh katalognya tidak ikut berubah.';
+      addBotButton.innerHTML = '<span>×</span> Batal ubah token';
+      input.focus();
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    tokenFormTitle.textContent = 'Token BotFather';
+    tokenFormHint.textContent = 'Gunakan token untuk menambahkan bot baru atau memperbarui token bot yang sudah ada.';
+    addBotButton.innerHTML = '<span>+</span> Tambah bot';
+  }
+
+  function formatBotTime(value) {
+    const time = new Date(value);
+    if (Number.isNaN(time.getTime())) return '';
+    return time.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderBots() {
+    botList.replaceChildren();
+    botListEmpty.classList.toggle('hidden', managedBots.length > 0);
+    managedBots.forEach((entry) => {
+      const bot = entry.bot;
+      const isActive = activeBotId !== null && String(activeBotId) === String(bot.id);
+
+      const row = document.createElement('article');
+      row.className = `bot-row${isActive ? ' is-active' : ''}`;
+
+      const avatar = document.createElement('span');
+      avatar.className = 'bot-row-avatar';
+      avatar.textContent = (bot.firstName || 'B').trim().charAt(0).toUpperCase() || 'B';
+
+      const body = document.createElement('div');
+      body.className = 'bot-row-body';
+      const name = document.createElement('div');
+      name.className = 'bot-row-name';
+      const nameText = document.createElement('strong');
+      nameText.textContent = bot.firstName || 'Bot Telegram';
+      name.append(nameText);
+      if (isActive) {
+        const badge = document.createElement('span');
+        badge.className = 'bot-active-badge';
+        badge.textContent = 'BOT AKTIF';
+        name.append(badge);
+      }
+      const meta = document.createElement('small');
+      meta.className = 'bot-row-meta';
+      const identity = bot.username ? `@${bot.username}` : `ID ${bot.id}`;
+      const updated = formatBotTime(entry.updatedAt);
+      meta.textContent = updated ? `${identity} · diperbarui ${updated}` : identity;
+      body.append(name, meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'bot-row-actions';
+      const tokenButton = document.createElement('button');
+      tokenButton.type = 'button';
+      tokenButton.className = 'bot-action';
+      tokenButton.dataset.action = 'token';
+      tokenButton.dataset.botId = String(bot.id);
+      tokenButton.textContent = 'Ubah token';
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'bot-action danger';
+      removeButton.dataset.action = 'remove';
+      removeButton.dataset.botId = String(bot.id);
+      removeButton.textContent = 'Hapus';
+      actions.append(tokenButton, removeButton);
+
+      row.append(avatar, body, actions);
+      botList.append(row);
+    });
+  }
+
+  async function loadBots() {
+    try {
+      const { response, data } = await request('/api/bots', { method: 'GET' });
+      if (!response.ok || !data.ok) {
+        managedBots = [];
+        renderBots();
+        setBotManagerMessage(response.status === 401 || response.status === 403
+          ? 'Hubungkan bot Anda untuk mengelola daftar bot, mengubah token, atau menghapus bot.'
+          : (data.message || 'Daftar bot belum dapat dimuat.'), 'error');
+        return;
+      }
+      managedBots = data.bots || [];
+      activeBotId = data.activeBotId ?? activeBotId;
+      renderBots();
+      setBotManagerMessage(managedBots.length
+        ? `${managedBots.length} bot terhubung. Gunakan “Ubah token” untuk mengelola bot tertentu.`
+        : 'Belum ada bot yang dikelola. Verifikasi token untuk menambahkan bot pertama Anda.');
+    } catch {
+      managedBots = [];
+      renderBots();
+      setBotManagerMessage('Daftar bot belum dapat dimuat. Periksa koneksi lalu coba lagi.', 'error');
+    }
+  }
+
   // Kartu progress sidebar mengikuti kondisi nyata: bot terhubung, welcome
   // terisi, minimal satu produk, dan nomor WhatsApp tersimpan.
   function updateSetupProgress() {
@@ -553,6 +672,7 @@
 
   function showConnected(bot) {
     isBotConnected = true;
+    activeBotId = bot.id;
     updateWorkspaceCard(bot);
     const title = bot.username ? `@${bot.username} berhasil terhubung` : `${bot.firstName} berhasil terhubung`;
     const details = bot.username
@@ -570,10 +690,13 @@
     nextSection.style.borderColor = '#d8ebdf';
     setDiagnosticEnabled(true);
     updateSetupProgress();
+    loadBots();
   }
 
   function showDisconnected() {
     isBotConnected = false;
+    activeBotId = null;
+    setTokenTarget(null);
     updateWorkspaceCard(null);
     banner.classList.add('hidden');
     ctaText.textContent = 'Verifikasi & hubungkan';
@@ -588,6 +711,7 @@
     diagnosticState.textContent = 'Diagnostik tetap dapat memeriksa bot terakhir meski sesi sudah berakhir.';
     clearWelcomeError();
     updateSetupProgress();
+    loadBots();
   }
 
   async function request(url, options = {}) {
@@ -850,7 +974,8 @@
 
     setLoading(true);
     try {
-      const { response, data } = await request('/api/bot/connect', { method: 'POST', body: JSON.stringify({ token }) });
+      const wasChangingToken = Boolean(expectedBotId);
+      const { response, data } = await request('/api/bot/connect', { method: 'POST', body: JSON.stringify({ token, expectedBotId }) });
       if (!response.ok || !data.ok) {
         showError(data.message || 'Token belum dapat diverifikasi. Silakan coba lagi.');
         return;
@@ -859,8 +984,12 @@
       input.type = 'password';
       toggle.setAttribute('aria-label', 'Tampilkan token');
       toggle.setAttribute('title', 'Tampilkan token');
+      setTokenTarget(null);
       showConnected(data.bot);
       await loadActiveBotData();
+      setBotManagerMessage(wasChangingToken
+        ? '✓ Token bot berhasil diperbarui dan webhook-nya diaktifkan ulang.'
+        : '✓ Bot berhasil ditambahkan ke daftar dan kini menjadi bot aktif.', 'success');
     } catch {
       showError('Tidak dapat terhubung ke server. Periksa koneksi Anda lalu coba kembali.');
     } finally {
@@ -1136,6 +1265,43 @@
     });
   });
 
+  addBotButton.addEventListener('click', () => {
+    setTokenTarget(null);
+    input.focus();
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  botList.addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action][data-bot-id]');
+    if (!button) return;
+    const botId = button.dataset.botId;
+    const entry = managedBots.find((item) => String(item.bot.id) === String(botId));
+    if (!entry) return;
+    const label = entry.bot.username ? `@${entry.bot.username}` : entry.bot.firstName;
+
+    if (button.dataset.action === 'token') {
+      setTokenTarget(entry.bot);
+      return;
+    }
+
+    if (!window.confirm(`Hapus bot ${label} dari panel?\n\nSELURUH produk, kategori, dan daftar customer bot ini ikut terhapus permanen. Tindakan ini tidak dapat dibatalkan.`)) return;
+    button.disabled = true;
+    try {
+      const { response, data } = await request('/api/bot/remove', { method: 'POST', body: JSON.stringify({ botId }) });
+      if (!response.ok || !data.ok) {
+        setBotManagerMessage(data.message || 'Bot belum dapat dihapus.', 'error');
+        button.disabled = false;
+        return;
+      }
+      if (String(activeBotId) === String(botId)) showDisconnected();
+      await loadBots();
+      setBotManagerMessage(`✓ Bot ${label} berhasil dihapus dari panel.`, 'success');
+    } catch {
+      setBotManagerMessage('Bot belum dapat dihapus. Periksa koneksi lalu coba lagi.', 'error');
+      button.disabled = false;
+    }
+  });
+
   window.addEventListener('hashchange', () => switchPanel(window.location.hash.slice(1), false));
   switchPanel(window.location.hash.slice(1), false);
 
@@ -1152,6 +1318,7 @@
         setDiagnosticEnabled(true);
         diagnosticState.textContent = 'Diagnostik dapat memeriksa bot yang terakhir dikonfigurasi.';
         updateSetupProgress();
+        loadBots();
       }
     } catch {
       setWelcomeState(false);
@@ -1160,6 +1327,7 @@
       setDiagnosticEnabled(true);
       diagnosticState.textContent = 'Diagnostik dapat memeriksa bot yang terakhir dikonfigurasi.';
       updateSetupProgress();
+      loadBots();
     }
   })();
 })();

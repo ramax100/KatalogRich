@@ -77,6 +77,7 @@ export default async function connectBot(req, res) {
     }
 
     let currentSettings = await getTelegramSettings(bot.id);
+    const isNewBot = !currentSettings;
     // Any successful token connection explicitly registers the bot for the
     // management screen. This avoids relying on a browser-only “Tambah bot” flag.
     if (currentSettings?.id === 'primary') {
@@ -99,7 +100,7 @@ export default async function connectBot(req, res) {
       });
     }
 
-    return sendJson(res, 200, { ok: true, bot, webhookConfigured: true });
+    return sendJson(res, 200, { ok: true, bot, webhookConfigured: true, isNewBot });
   } catch (error) {
     if (error instanceof SettingsConfigurationError || error instanceof SettingsStorageError) {
       return sendJson(res, 503, { ok: false, message: error.message });

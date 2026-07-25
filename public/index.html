@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071327" />
     <title>Katalink — Hubungkan Bot Telegram</title>
-    <link rel="stylesheet" href="/styles.css?v=20260725-menu1" />
+    <link rel="stylesheet" href="/styles.css?v=20260725-multibot1" />
   </head>
   <body>
     <div class="shell">
@@ -153,6 +153,19 @@
             </aside>
           </div>
 
+          <section class="bot-manager" data-menu-section="connect" aria-labelledby="botManagerTitle">
+            <div class="bot-manager-head">
+              <div>
+                <p class="eyebrow">MULTI BOT</p>
+                <h2 id="botManagerTitle">Bot terhubung</h2>
+                <p id="botManagerState">Hubungkan bot Anda untuk mengelola daftar bot, mengubah token, atau menghapus bot.</p>
+              </div>
+              <button class="add-bot-button" id="addBotButton" type="button" title="Tambah bot baru dengan token BotFather"><span>+</span> Tambah bot</button>
+            </div>
+            <div id="botList" class="bot-list" aria-live="polite"></div>
+            <p id="botListEmpty" class="bot-list-empty">Belum ada bot yang dapat dikelola. Verifikasi token untuk menambahkan bot pertama Anda.</p>
+          </section>
+
           <section class="welcome-section" id="welcome" data-menu-section="welcome" aria-labelledby="welcomeTitle">
             <div class="section-heading">
               <div>
@@ -282,6 +295,6 @@
         <footer><span>© 2026 Katalink</span><span>•</span><a href="#">Privasi &amp; keamanan</a></footer>
       </main>
     </div>
-    <script src="/app.js?v=20260725-menu1"></script>
+    <script src="/app.js?v=20260725-multibot1"></script>
   </body>
 </html>

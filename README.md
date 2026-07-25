@@ -13,6 +13,11 @@ Panel admin untuk menghubungkan satu bot Telegram, mengaktifkan webhook, mengatu
 - Token tidak pernah dikembalikan ke browser, disimpan di `localStorage`, atau ditulis ke log.
 - Validasi webhook memakai `X-Telegram-Bot-Api-Secret-Token`.
 - Katalog produk (maks. 50): foto via Supabase Storage, kategori, produk populer, pengurutan, pencarian `/cari`, dan tombol **Pesan sekarang** ke WhatsApp.
+- **Multi bot**: kelola banyak bot dari satu panel di bagian **Bot terhubung**.
+  - Setiap token BotFather punya baris pengaturan sendiri; verifikasi token baru otomatis menambah bot dan menjadikannya bot aktif.
+  - **Ubah token**: tempel token terbaru dari bot yang sama (token bot lain ditolak agar katalog tidak tertimpa) — webhook langsung diaktifkan ulang.
+  - **Hapus bot**: hanya bot yang sedang aktif di sesi Anda yang dapat dihapus (bukti kepemilikan lewat token); produk, kategori, dan daftar customer bot ikut terhapus via cascade. Webhook Telegram dimatikan otomatis saat bot dihapus.
+  - Webhook semua bot berbagi URL yang sama dan dipilah lewat `X-Telegram-Bot-Api-Secret-Token` per bot.
 - **Kirim Pesan (broadcast)** ke semua customer, dengan ketentuan:
   - Customer otomatis tercatat saat mengirim pesan apa pun ke bot (bukan hanya `/start`), khusus chat privat.
   - Daftar customer disimpan di tabel `catalog_customer_chats` dengan upsert atomik — tidak ada chat yang hilang saat pesan masuk bersamaan.
@@ -89,9 +94,11 @@ Lalu buka [http://localhost:3000](http://localhost:3000). Untuk benar-benar mene
 ```text
 .
 ├── api/
-│   ├── bot/connect.js            # Verifikasi token, simpan terenkripsi, setWebhook
+│   ├── bot/connect.js            # Verifikasi token, multi bot (tambah/ubah token), setWebhook
+│   ├── bot/remove.js             # Hapus bot (bot aktif saja) + matikan webhook
 │   ├── telegram/webhook.js       # Menangani /start, katalog, pencarian, dan pencatatan customer
 │   ├── broadcast.js              # Kirim Pesan ke semua customer (wajib sesi admin)
+│   ├── bots.js                   # Daftar bot terhubung untuk pengelola multi bot
 │   ├── products.js               # CRUD produk + foto
 │   ├── categories.js             # Kategori produk
 │   ├── contact.js                # Nomor WhatsApp pemesanan
