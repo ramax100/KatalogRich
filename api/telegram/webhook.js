@@ -161,14 +161,11 @@ function pageKeyboard(kind, offset, hasMore, state = {}) {
   if (offset > 0) navigation.push({ text: '‹ Sebelumnya', callback_data: callbackFor(kind, Math.max(0, offset - PAGE_SIZE), state) });
   if (hasMore) navigation.push({ text: 'Selanjutnya ›', callback_data: callbackFor(kind, offset + PAGE_SIZE, state) });
 
-  // Tombol "Kembali ke semua produk" dibuat sebagai box inline di semua
-  // tampilan daftar: katalog, kategori, populer, dan hasil pencarian. Pada
-  // halaman katalog utama tombol ini aman ditekan kapan pun karena mengarah ke
-  // halaman pertama semua produk.
+  // Di halaman semua produk/katalog, tombol "Semua produk" tidak perlu
+  // ditampilkan karena customer sudah berada di daftar utama.
   if (kind === 'catalog') {
     const rows = [
       [...navigation, { text: '🔥 Produk populer', callback_data: 'popular_page:0' }],
-      allProductsRow(),
       [
         { text: '📂 Kategori', callback_data: 'category_menu' },
         { text: '🔎 Cari produk', callback_data: 'search_help' }
