@@ -1,4 +1,4 @@
-# Katalink — Telegram Catalog Panel
+# Katalog Rich Store — Telegram Catalog Panel
 
 Panel admin untuk menghubungkan satu atau banyak bot Telegram, mengaktifkan webhook, mengatur pesan welcome, mengelola katalog produk, dan mengirim pesan ke semua customer — dilindungi **login admin**.
 
@@ -78,7 +78,7 @@ Gunakan [`.env.example`](./.env.example) sebagai referensi nama variabel. Semua 
 3. Buka bagian **Pesan Welcome**, ubah teks, dan pilih **Simpan perubahan**.
 4. Buka chat bot di Telegram sebagai customer dan tekan **Start** untuk menguji pesan.
 
-> Jika bot sebelumnya memakai webhook lain, menghubungkan bot dari panel ini akan menggantinya dengan webhook Katalink.
+> Jika bot sebelumnya memakai webhook lain, menghubungkan bot dari panel ini akan menggantinya dengan webhook panel ini.
 
 ## Deploy ke Vercel
 
