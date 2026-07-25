@@ -223,7 +223,7 @@
     sendBroadcastButton.disabled = !enabled || !audience;
     broadcastAudienceBadge.classList.toggle('ready', enabled);
     broadcastAudienceBadge.innerHTML = `<span></span> ${enabled
-      ? `Bot siap · ${audience} customer`
+      ? `Bot siap · ${Number(audience) || 0} customer`
       : (reason === 'error' ? 'Daftar customer belum dapat dimuat' : 'Hubungkan bot untuk memuat customer')}`;
     if (!enabled) {
       broadcastText.value = '';
