@@ -28,6 +28,7 @@ export const config = {
 };
 
 const PAGE_SIZE = 10;
+const SEARCH_HELP_TEXT = '🔎 Cari produk\n\nKetik nama atau kata kunci produk minimal 2 karakter.\nContoh: tumbler\n\nAtau gunakan perintah: /cari tumbler';
 
 function safeOffset(value) {
   const offset = Number(value);
@@ -246,6 +247,32 @@ async function noteMenuContext(botId, chatId, context) {
   await setChatMenuContext(botId, chatId, context).catch(() => {});
 }
 
+function searchKeywordLength(value) {
+  return [...String(value || '').trim()].length;
+}
+
+async function sendSearchHelp(token, chatId, botId) {
+  const delivered = await sendWithLoading(token, chatId, 'Menyiapkan pencarian', async () => ({
+    text: SEARCH_HELP_TEXT
+  }));
+  if (delivered) await noteMenuContext(botId, chatId, 'search_prompt');
+  return delivered;
+}
+
+async function sendSearchTooShort(token, chatId, botId) {
+  const delivered = await sendTelegramMessage(token, chatId, `Kata kunci pencarian minimal 2 karakter.\n\n${SEARCH_HELP_TEXT}`);
+  if (delivered) await noteMenuContext(botId, chatId, 'search_prompt');
+  return delivered;
+}
+
+async function handleSearchRequest(token, chatId, botId, rawQuery) {
+  const raw = String(rawQuery || '').trim();
+  if (!raw) return sendSearchHelp(token, chatId, botId);
+  const query = compactSearchQuery(raw);
+  if (searchKeywordLength(query) < 2) return sendSearchTooShort(token, chatId, botId);
+  return sendCatalogPage(token, chatId, botId, 'search', 0, { query });
+}
+
 async function sendCatalogPage(token, chatId, botId, kind = 'catalog', offset = 0, state = {}) {
   const label = LOADING_LABELS[kind] || 'Memuat katalog';
   const delivered = await sendWithLoading(token, chatId, label, async () => {
@@ -363,9 +390,7 @@ export default async function telegramWebhook(req, res) {
       if (callbackData === 'search_help') {
         const acknowledged = await answerCatalogCallback(token, callback.id, '⏳ Menyiapkan pencarian…');
         const delivered = callback.message?.chat?.id
-          ? await sendWithLoading(token, callback.message.chat.id, 'Menyiapkan pencarian', async () => ({
-            text: '🔎 Cari produk\n\nKetik nama atau kata kunci produk.\nContoh: tumbler\n\nAtau gunakan perintah: /cari tumbler'
-          }))
+          ? await sendSearchHelp(token, callback.message.chat.id, settings.bot_id)
           : false;
         return sendJson(res, acknowledged && delivered ? 200 : 502, { ok: acknowledged && delivered });
       }
@@ -423,9 +448,9 @@ export default async function telegramWebhook(req, res) {
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
 
-    const searchMatch = /^\/cari\s+(.{2,})$/i.exec(messageText);
+    const searchMatch = /^\/cari(?:@\w+)?(?:\s+([\s\S]*))?$/i.exec(messageText);
     if (searchMatch) {
-      const delivered = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'search', 0, { query: searchMatch[1] });
+      const delivered = await handleSearchRequest(token, message.chat.id, settings.bot_id, searchMatch[1] || '');
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
 
@@ -436,6 +461,10 @@ export default async function telegramWebhook(req, res) {
       // "2"); setelah daftar/detail produk tampil, angka membuka produk.
       // Konteks ditimpa setiap kali bot menampilkan menu baru.
       const menu = await getChatMenuContext(settings.bot_id, message.chat.id).catch(() => null);
+      if (menu?.context === 'search_prompt') {
+        const delivered = await handleSearchRequest(token, message.chat.id, settings.bot_id, numberMatch[1]);
+        return sendJson(res, delivered ? 200 : 502, { ok: delivered });
+      }
       if (menu?.context === 'categories') {
         const [categories, products] = await Promise.all([
           getCategories(settings.bot_id),
@@ -466,7 +495,7 @@ export default async function telegramWebhook(req, res) {
 
     // Ordinary text is a product-name/description search.
     if (messageText && !messageText.startsWith('/')) {
-      const delivered = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'search', 0, { query: messageText });
+      const delivered = await handleSearchRequest(token, message.chat.id, settings.bot_id, messageText);
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
 
