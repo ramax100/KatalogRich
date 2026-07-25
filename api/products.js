@@ -7,8 +7,8 @@ import {
   getTelegramSettings,
   isBotSessionAuthorized
 } from '../lib/telegram-settings.js';
-import { createProduct, deleteProduct, getProductById, getProducts, moveProduct, updateProduct, updateProductCategory, updateProductPopularity } from '../lib/catalog-products.js';
-import { uploadProductImage } from '../lib/product-images.js';
+import { MAX_PRODUCTS, createProduct, deleteProduct, getProductById, getProducts, moveProduct, updateProduct, updateProductCategory, updateProductPopularity } from '../lib/catalog-products.js';
+import { deleteStorageImage, uploadProductImage } from '../lib/product-images.js';
 import { getCategoryById } from '../lib/catalog-categories.js';
 
 export const config = {
@@ -40,7 +40,9 @@ export default async function products(req, res) {
     if (authorization.error) return sendJson(res, authorization.error.status, { ok: false, message: authorization.error.message });
 
     if (req.method === 'GET') {
-      const items = await getProducts(authorization.botId);
+      // Panel admin harus melihat seluruh produk untuk mengelolanya, bukan
+      // hanya satu halaman pertama seperti tampilan katalog di Telegram.
+      const items = await getProducts(authorization.botId, { limit: MAX_PRODUCTS });
       return sendJson(res, 200, { ok: true, products: items });
     }
 
@@ -89,15 +91,25 @@ export default async function products(req, res) {
       const existing = await getProductById(authorization.botId, body.id);
       if (!existing) return sendJson(res, 404, { ok: false, message: 'Produk tidak ditemukan.' });
       const uploadedImage = await uploadProductImage(authorization.botId, body.imageData);
+      // Foto produk opsional dan bisa dihapus tanpa mengganti: removeImage
+      // membersihkan foto lama; foto baru yang terunggah selalu menang.
+      const removeImage = body.removeImage === true && !uploadedImage;
+      const nextImageUrl = uploadedImage || (removeImage ? null : existing.imageUrl);
       const product = await updateProduct(authorization.botId, body.id, {
         ...body,
-        imageUrl: uploadedImage || existing.imageUrl
+        imageUrl: nextImageUrl
       });
+      // Foto lama yang tergantikan/dihapus dibersihkan dari storage (best effort).
+      if (existing.imageUrl && existing.imageUrl !== nextImageUrl) {
+        await deleteStorageImage(existing.imageUrl).catch(() => false);
+      }
       return sendJson(res, 200, { ok: true, product });
     }
 
     const url = new URL(req.url || '', `https://${req.headers.host || 'localhost'}`);
     const product = await deleteProduct(authorization.botId, url.searchParams.get('id'));
+    // Bersihkan file foto produk yang terhapus dari storage (best effort).
+    if (product?.imageUrl) await deleteStorageImage(product.imageUrl).catch(() => false);
     return sendJson(res, 200, { ok: true, product });
   } catch (error) {
     if (error instanceof SettingsConfigurationError || error instanceof SettingsStorageError) {

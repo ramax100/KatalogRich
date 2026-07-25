@@ -111,6 +111,7 @@
   let isCategoryEnabled = false;
   let isWhatsAppEnabled = false;
   let productImageData = '';
+  let productImageRemoved = false;
   let categories = [];
   let editingProduct = null;
   let displayedProducts = [];
@@ -305,7 +306,11 @@
 
   function clearProductImage() {
     productImageData = '';
+    productImageRemoved = false;
     productImage.value = '';
+    productImagePreview.classList.remove('marked-removal');
+    clearProductImageButton.textContent = '×';
+    clearProductImageButton.setAttribute('aria-label', 'Hapus foto produk');
     if (editingProduct?.imageUrl) {
       productImagePreviewImg.src = editingProduct.imageUrl;
       productImagePreview.classList.remove('hidden');
@@ -1037,6 +1042,9 @@
     const reader = new FileReader();
     reader.addEventListener('load', () => {
       productImageData = typeof reader.result === 'string' ? reader.result : '';
+      productImageRemoved = false;
+      productImagePreview.classList.remove('marked-removal');
+      clearProductImageButton.textContent = '×';
       productImagePreviewImg.src = productImageData;
       productImagePreview.classList.remove('hidden');
       productImageLabel.textContent = file.name;
@@ -1048,8 +1056,24 @@
     reader.readAsDataURL(file);
   });
   clearProductImageButton.addEventListener('click', () => {
-    clearProductImage();
     clearProductError();
+    if (productImageRemoved || productImageData) {
+      // Batalkan penandaan hapus foto lama, atau buang foto baru yang belum
+      // disimpan — keduanya kembali ke kondisi awal form.
+      clearProductImage();
+      return;
+    }
+    if (editingProduct?.imageUrl) {
+      // Klik × pada foto lama menandai foto untuk dihapus saat disimpan;
+      // klik ↺ (pada pratinjau yang meredup) membatalkannya.
+      productImageRemoved = true;
+      productImagePreview.classList.add('marked-removal');
+      clearProductImageButton.textContent = '↺';
+      clearProductImageButton.setAttribute('aria-label', 'Batalkan penghapusan foto');
+      productImageLabel.textContent = 'Foto akan dihapus saat disimpan — klik ↺ untuk batal';
+      return;
+    }
+    clearProductImage();
   });
   cancelProductEdit.addEventListener('click', () => {
     resetProductEditor();
@@ -1237,7 +1261,7 @@
     const wasEditing = Boolean(editingProduct);
     setProductSaving(true);
     try {
-      const payload = { name, categoryId, price, description, imageData: productImageData };
+      const payload = { name, categoryId, price, description, imageData: productImageData, removeImage: productImageRemoved };
       if (wasEditing) payload.id = editingProduct.id;
       const { response, data } = await request('/api/products', {
         method: wasEditing ? 'PATCH' : 'POST', body: JSON.stringify(payload)

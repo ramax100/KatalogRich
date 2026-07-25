@@ -17,7 +17,8 @@ Panel admin untuk menghubungkan satu atau banyak bot Telegram, mengaktifkan webh
 - Token BotFather dienkripsi menggunakan **AES-256-GCM** sebelum disimpan.
 - Token tidak pernah dikembalikan ke browser, disimpan di `localStorage`, atau ditulis ke log.
 - Validasi webhook memakai `X-Telegram-Bot-Api-Secret-Token`.
-- Katalog produk (maks. 50): foto via Supabase Storage, kategori, produk populer, pengurutan, pencarian `/cari`, dan tombol **Pesan sekarang** ke WhatsApp.
+- Katalog produk (maks. 50): foto **opsional** via Supabase Storage (produk tanpa foto tetap bisa disimpan; foto bisa diganti atau dihapus saat edit — file lama otomatis dibersihkan dari storage), kategori, produk populer, pengurutan, pencarian `/cari`, dan tombol **Pesan sekarang** ke WhatsApp.
+- **Diagnostik** memeriksa validitas token (getMe), status webhook Telegram (dengan perbaikan otomatis), keterbacaan data katalog, nomor WhatsApp, dan pesan welcome — selalu terhadap bot yang sedang aktif di sesi panel.
 - **Multi bot**: kelola banyak bot dari satu panel di bagian **Bot terhubung**.
   - Setiap token BotFather punya baris pengaturan sendiri; verifikasi token baru otomatis menambah bot dan menjadikannya bot aktif.
   - **Ubah token**: tempel token terbaru dari bot yang sama (token bot lain ditolak agar katalog tidak tertimpa) — webhook langsung diaktifkan ulang.

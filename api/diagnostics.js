@@ -32,7 +32,10 @@ export default async function diagnostics(req, res) {
     let settings = null;
     if (session) {
       try {
-        const sessionSettings = await getTelegramSettings(session.session.bot.id);
+        // getBotSession mengembalikan payload sesi langsung ({ bot, exp }) —
+        // akses session.bot (bukan session.session.bot) agar bot yang diperiksa
+        // benar-benar bot aktif, bukan jatuh ke fallback bot terakhir.
+        const sessionSettings = await getTelegramSettings(session.bot?.id);
         if (isBotSessionAuthorized(session, sessionSettings)) settings = sessionSettings;
       } catch {
         // A stale cookie must not stop the fallback diagnostic below.
@@ -52,18 +55,46 @@ export default async function diagnostics(req, res) {
       checks.push(errorCheck('token', 'Token bot', 'Token tersimpan tidak dapat dibaca. Masukkan ulang token BotFather untuk bot ini.'));
     }
 
+    let tokenValid = false;
+    if (token) {
+      // Verifikasi token ke Telegram lebih dulu: token yang dicabut/direset di
+      // BotFather membuat semua pemeriksaan lain gagal dengan pesan yang
+      // menyesatkan, jadi laporkan akar masalahnya secara eksplisit.
+      try {
+        const me = await telegramRequest(token, 'getMe', {});
+        tokenValid = Boolean(me.ok);
+        checks.push({
+          id: 'token',
+          label: 'Token bot',
+          status: me.ok ? 'healthy' : 'error',
+          detail: me.ok
+            ? `Token valid dan aktif sebagai @${me.result?.result?.username || settings.bot_username || 'bot'}.`
+            : 'Token tidak berlaku lagi (kemungkinan direset di BotFather). Masukkan token baru lewat Hubungkan Bot.'
+        });
+      } catch {
+        checks.push(errorCheck('token', 'Token bot', 'Telegram belum dapat dihubungi untuk memverifikasi token. Coba lagi beberapa saat lagi.'));
+      }
+    }
+
     if (token) {
       try {
-        const webhookInfo = await telegramRequest(token, 'getWebhookInfo', {});
+        const webhookInfo = tokenValid ? await telegramRequest(token, 'getWebhookInfo', {}) : { ok: false };
         const info = webhookInfo.result?.result || {};
-        const needsRepair = !webhookInfo.ok || info.url !== settings.webhook_url || Boolean(info.last_error_message);
+        const needsRepair = !tokenValid || !webhookInfo.ok || info.url !== settings.webhook_url || Boolean(info.last_error_message);
         if (needsRepair) {
-          const repaired = await configureTelegramWebhook(token, settings.webhook_url, settings.webhook_secret);
+          // Repair hanya dicoba saat token valid; token mati harus diganti dulu.
+          const repaired = tokenValid
+            ? await configureTelegramWebhook(token, settings.webhook_url, settings.webhook_secret)
+            : false;
           checks.push({
             id: 'webhook',
             label: 'Webhook Telegram',
             status: repaired ? 'repaired' : 'error',
-            detail: repaired ? 'Webhook diperbarui otomatis dan siap menerima pesan.' : 'Webhook belum dapat diperbaiki. Hubungkan token kembali untuk mencoba ulang.'
+            detail: repaired
+              ? 'Webhook diperbarui otomatis dan siap menerima pesan.'
+              : (tokenValid
+                ? 'Webhook belum dapat diperbaiki. Hubungkan token kembali untuk mencoba ulang.'
+                : 'Webhook tidak dapat diperiksa karena token bot tidak berlaku. Masukkan token baru lebih dulu.')
           });
         } else {
           checks.push({ id: 'webhook', label: 'Webhook Telegram', status: 'healthy', detail: 'Webhook aktif dan tidak menemukan error Telegram.' });
@@ -93,6 +124,15 @@ export default async function diagnostics(req, res) {
       label: 'WhatsApp pemesanan',
       status: settings.whatsapp_number ? 'healthy' : 'warning',
       detail: settings.whatsapp_number ? `Nomor +${settings.whatsapp_number} siap digunakan.` : 'Nomor WhatsApp belum diatur. Tombol Pesan sekarang belum akan tampil.'
+    });
+
+    checks.push({
+      id: 'welcome',
+      label: 'Pesan welcome',
+      status: settings.welcome_text ? 'healthy' : 'warning',
+      detail: settings.welcome_text
+        ? 'Pesan welcome terisi dan siap dikirim ke customer baru.'
+        : 'Pesan welcome kosong — customer yang mengirim /start akan menerima pesan bawaan. Atur di menu Pesan Welcome.'
     });
 
     const repaired = checks.some((check) => check.status === 'repaired');

@@ -463,3 +463,8 @@ footer a { text-decoration: none; }
 .broadcast-attach { margin-top: 8px; }
 .broadcast-image-picker { min-height: 40px; }
 .broadcast-image-preview { width: 96px; height: 72px; }
+
+/* Foto produk yang ditandai akan dihapus saat perubahan disimpan */
+.image-preview.marked-removal { border-color: #e4b7bf; }
+.image-preview.marked-removal img { opacity: .35; filter: grayscale(.55); }
+.image-preview.marked-removal button { background: rgba(178,58,72,.88); font-size: 12px; }
