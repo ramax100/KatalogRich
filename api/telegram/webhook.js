@@ -286,13 +286,12 @@ export default async function telegramWebhook(req, res) {
 
     const numberMatch = /^(\d{1,10})$/.exec(messageText);
     if (numberMatch) {
-      // Angka polos mengikuti konteks menu terakhir: setelah daftar kategori
-      // angka membuka kategori (cukup ketik "2", tanpa perintah); setelah
-      // daftar produk angka membuka detail produk. Konteks lebih tua dari 15
-      // menit diabaikan agar chat lama tidak terjebak di mode kategori.
+      // Angka polos mengikuti konteks menu terakhir TANPA batas waktu: setelah
+      // daftar kategori tampil, angka selalu membuka kategori (cukup ketik
+      // "2"); setelah daftar/detail produk tampil, angka membuka produk.
+      // Konteks ditimpa setiap kali bot menampilkan menu baru.
       const menu = await getChatMenuContext(settings.bot_id, message.chat.id).catch(() => null);
-      const contextFresh = menu?.at && (Date.now() - new Date(menu.at).getTime()) < 15 * 60 * 1000;
-      if (menu?.context === 'categories' && contextFresh) {
+      if (menu?.context === 'categories') {
         const categories = await getCategories(settings.bot_id);
         const category = resolveCategoryByNumber(categories, numberMatch[1]);
         if (category) {
