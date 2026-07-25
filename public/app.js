@@ -367,10 +367,16 @@
 
   function renderCategories() {
     categoryList.replaceChildren();
-    categories.forEach((category) => {
+    // Format ringkas seperti di Telegram: [nomor] nama (jumlah produk).
+    const counts = new Map();
+    displayedProducts.forEach((product) => {
+      const id = Number(product?.categoryId);
+      if (Number.isSafeInteger(id) && id > 0) counts.set(id, (counts.get(id) || 0) + 1);
+    });
+    categories.forEach((category, index) => {
       const chip = document.createElement('span');
       chip.className = 'category-chip';
-      chip.textContent = category.name;
+      chip.textContent = `${index + 1}. ${category.name} (${counts.get(category.id) || 0} produk)`;
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.dataset.categoryId = String(category.id);
@@ -848,6 +854,8 @@
       }
       setCatalogState(true);
       renderProducts(data.products || []);
+      // Jumlah produk per kategori pada chip ikut diperbarui.
+      renderCategories();
     } catch {
       setCatalogState(false, 'Tidak dapat menghubungi server.');
       showProductError('Tidak dapat memuat daftar produk. Periksa koneksi lalu coba lagi.');

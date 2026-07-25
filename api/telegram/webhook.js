@@ -13,6 +13,7 @@ import {
   sendWelcomeMessage
 } from '../../lib/telegram-settings.js';
 import {
+  MAX_PRODUCTS,
   catalogListText,
   getProductByOrder,
   getProducts,
@@ -21,7 +22,7 @@ import {
   productDetailText,
   whatsappOrderUrl
 } from '../../lib/catalog-products.js';
-import { categoryListText, getCategories, getCategoryById } from '../../lib/catalog-categories.js';
+import { categoryListText, getCategories, getCategoryById, resolveCategoryByNumber } from '../../lib/catalog-categories.js';
 import { rememberCustomerChat } from '../../lib/customer-chats.js';
 
 export const config = {
@@ -194,13 +195,16 @@ export default async function telegramWebhook(req, res) {
 
       if (callbackData === 'category_menu') {
         const acknowledged = await answerCatalogCallback(token, callback.id);
-        const categories = await getCategories(settings.bot_id);
+        const [categories, products] = await Promise.all([
+          getCategories(settings.bot_id),
+          getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS })
+        ]);
         const delivered = callback.message?.chat?.id && callback.message?.message_id
           ? await editTelegramMessage(
             token,
             callback.message.chat.id,
             callback.message.message_id,
-            categoryListText(categories),
+            categoryListText(categories, products),
             { inline_keyboard: [[{ text: '📋 Semua produk', callback_data: 'catalog_page:0' }], [{ text: '🔎 Cari produk', callback_data: 'search_help' }]] }
           )
           : false;
@@ -240,12 +244,20 @@ export default async function telegramWebhook(req, res) {
 
     const categoryMatch = /^\/kategori(?:\s+(\d+))?\s*$/i.exec(messageText);
     if (categoryMatch) {
+      const categories = await getCategories(settings.bot_id);
       if (!categoryMatch[1]) {
-        const categories = await getCategories(settings.bot_id);
-        const delivered = await sendTelegramMessage(token, message.chat.id, categoryListText(categories));
+        const products = await getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS });
+        const delivered = await sendTelegramMessage(token, message.chat.id, categoryListText(categories, products));
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
-      const delivered = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: Number(categoryMatch[1]) });
+      // Nomor mengikuti nomor urut pada daftar ([1], [2], ...), bukan ID database.
+      const category = resolveCategoryByNumber(categories, categoryMatch[1]);
+      if (!category) {
+        const products = await getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS });
+        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`);
+        return sendJson(res, delivered ? 200 : 502, { ok: delivered });
+      }
+      const delivered = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: category.id });
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
 
