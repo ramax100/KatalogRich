@@ -82,17 +82,22 @@ function callbackFor(kind, offset, state = {}) {
   return 'catalog_page:0';
 }
 
-// === Fast replies ==========================================================
-// Sebelumnya setiap menu memakai animasi loading 1% → 50% → 100% sebelum
-// konten akhir. Itu terasa menarik, tetapi menambah ±0,5 detik dan beberapa
-// request Telegram pada hampir semua aksi. Untuk mode cepat, helper bernama
-// lama ini sekarang langsung mengirim/mengedit konten akhir tanpa jeda buatan.
+// === Loading instan ========================================================
+// Loading tetap dipertahankan, tetapi dibuat cepat: bot langsung mengirim atau
+// mengedit pesan menjadi loading, lalu hanya sekali mengubahnya ke konten akhir.
+// Tidak ada animasi bertahap/delay buatan, sehingga customer langsung melihat
+// indikator saat data sedang dimuat tanpa membuat respons terasa lambat.
 const LOADING_LABELS = {
   catalog: 'Memuat katalog',
   popular: 'Memuat produk populer',
   category: 'Memuat kategori',
   search: 'Memuat hasil pencarian'
 };
+
+function loadingFrameText(label) {
+  return `⏳ ${label}
+█░░░░░░░░░ 1%`;
+}
 
 function contentPayload(content) {
   const payload = { text: content.text, disable_web_page_preview: true };
@@ -101,8 +106,15 @@ function contentPayload(content) {
   return payload;
 }
 
-async function sendWithLoading(token, chatId, _label, loadContent) {
-  const content = await loadContent();
+async function startLoadingMessage(token, chatId, label) {
+  const { ok, result } = await telegramRequest(token, 'sendMessage', {
+    chat_id: chatId,
+    text: loadingFrameText(label)
+  }).catch(() => ({ ok: false }));
+  return ok && result?.result?.message_id ? result.result.message_id : null;
+}
+
+async function sendContentMessage(token, chatId, content) {
   const { ok } = await telegramRequest(token, 'sendMessage', {
     chat_id: chatId,
     ...contentPayload(content)
@@ -110,14 +122,35 @@ async function sendWithLoading(token, chatId, _label, loadContent) {
   return Boolean(ok);
 }
 
-async function editWithLoading(token, chatId, messageId, _label, loadContent) {
-  const content = await loadContent();
+async function editContentMessage(token, chatId, messageId, content) {
   const { ok } = await telegramRequest(token, 'editMessageText', {
     chat_id: chatId,
     message_id: messageId,
     ...contentPayload(content)
   }).catch(() => ({ ok: false }));
   return Boolean(ok);
+}
+
+async function deliverContent(token, chatId, content, options = {}) {
+  if (options.loadingMessageId) return editContentMessage(token, chatId, options.loadingMessageId, content);
+  return sendContentMessage(token, chatId, content);
+}
+
+async function sendWithLoading(token, chatId, label, loadContent, options = {}) {
+  const loadingId = options.loadingMessageId || await startLoadingMessage(token, chatId, label);
+  const content = await loadContent();
+  if (loadingId) return editContentMessage(token, chatId, loadingId, content);
+  return sendContentMessage(token, chatId, content);
+}
+
+async function editWithLoading(token, chatId, messageId, label, loadContent) {
+  await telegramRequest(token, 'editMessageText', {
+    chat_id: chatId,
+    message_id: messageId,
+    text: loadingFrameText(label)
+  }).catch(() => null);
+  const content = await loadContent();
+  return editContentMessage(token, chatId, messageId, content);
 }
 
 function pageKeyboard(kind, offset, hasMore, state = {}) {
@@ -228,35 +261,35 @@ function searchKeywordLength(value) {
   return [...String(value || '').trim()].length;
 }
 
-async function sendSearchHelp(token, chatId, botId) {
+async function sendSearchHelp(token, chatId, botId, options = {}) {
   const delivered = await sendWithLoading(token, chatId, 'Menyiapkan pencarian', async () => ({
     text: SEARCH_HELP_TEXT,
     replyMarkup: allProductsKeyboard()
-  }));
+  }), options);
   if (delivered) await noteMenuContext(botId, chatId, 'search_prompt');
   return delivered;
 }
 
-async function sendSearchTooShort(token, chatId, botId) {
-  const delivered = await sendTelegramMessage(token, chatId, `Kata kunci pencarian minimal 2 karakter.\n\n${SEARCH_HELP_TEXT}`, allProductsKeyboard());
+async function sendSearchTooShort(token, chatId, botId, options = {}) {
+  const delivered = await deliverContent(token, chatId, { text: `Kata kunci pencarian minimal 2 karakter.\n\n${SEARCH_HELP_TEXT}`, replyMarkup: allProductsKeyboard() }, options);
   if (delivered) await noteMenuContext(botId, chatId, 'search_prompt');
   return delivered;
 }
 
-async function handleSearchRequest(token, chatId, botId, rawQuery) {
+async function handleSearchRequest(token, chatId, botId, rawQuery, options = {}) {
   const raw = String(rawQuery || '').trim();
-  if (!raw) return sendSearchHelp(token, chatId, botId);
+  if (!raw) return sendSearchHelp(token, chatId, botId, options);
   const query = compactSearchQuery(raw);
-  if (searchKeywordLength(query) < 2) return sendSearchTooShort(token, chatId, botId);
-  return sendCatalogPage(token, chatId, botId, 'search', 0, { query });
+  if (searchKeywordLength(query) < 2) return sendSearchTooShort(token, chatId, botId, options);
+  return sendCatalogPage(token, chatId, botId, 'search', 0, { query }, options);
 }
 
-async function sendCatalogPage(token, chatId, botId, kind = 'catalog', offset = 0, state = {}) {
+async function sendCatalogPage(token, chatId, botId, kind = 'catalog', offset = 0, state = {}, options = {}) {
   const label = LOADING_LABELS[kind] || 'Memuat katalog';
   const delivered = await sendWithLoading(token, chatId, label, async () => {
     const page = await getCatalogPage(botId, kind, offset, state);
     return { text: catalogListText(page.products, page.title, page.startNumber), replyMarkup: page.keyboard };
-  });
+  }, options);
   if (delivered) await noteMenuContext(botId, chatId, contextForPage(kind, state));
   return delivered;
 }
@@ -291,11 +324,7 @@ function productListContextOrDefault(context) {
   return typeof context === 'string' && (context === 'products' || context.startsWith('products:')) ? context : 'products';
 }
 
-async function sendProductDetail(token, chatId, botId, product, whatsappNumber, listContext = 'products') {
-  if (product.imageUrl) {
-    const photoSent = await sendTelegramVisual(token, chatId, product.imageUrl);
-    if (!photoSent) return false;
-  }
+async function sendProductDetail(token, chatId, botId, product, whatsappNumber, listContext = 'products', options = {}) {
   const orderUrl = whatsappOrderUrl(whatsappNumber, product);
   // Tombol box kembali selalu ada: customer tidak perlu mengetik /katalog lagi
   // setelah membaca detail (atau menekan Pesan sekarang lalu kembali).
@@ -306,10 +335,15 @@ async function sendProductDetail(token, chatId, botId, product, whatsappNumber, 
   const contactHint = orderUrl
     ? '\n\nKlik Pesan sekarang untuk melanjutkan pemesanan via WhatsApp.'
     : '\n\nGunakan tombol di bawah untuk kembali ke semua produk.';
-  const delivered = await sendWithLoading(token, chatId, 'Memuat detail produk', async () => ({
-    text: `${productDetailText(product)}${contactHint}`,
-    replyMarkup
-  }));
+  const delivered = await sendWithLoading(token, chatId, 'Memuat detail produk', async () => {
+    // Foto/GIF dikirim saat data sudah siap. Loading tetap sudah muncul lebih
+    // dulu, sehingga customer tidak menunggu tanpa indikator.
+    if (product.imageUrl) await sendTelegramVisual(token, chatId, product.imageUrl).catch(() => false);
+    return {
+      text: `${productDetailText(product)}${contactHint}`,
+      replyMarkup
+    };
+  }, options);
   // Detail produk bukan daftar baru, jadi pertahankan konteks daftar produk
   // terakhir. Dengan begitu setelah membuka produk dari kategori/pencarian,
   // angka berikutnya tetap merujuk daftar yang sama, bukan katalog utama.
@@ -340,7 +374,7 @@ export default async function telegramWebhook(req, res) {
     const privateChatId = (message?.chat?.type === 'private' && message.chat.id)
       || (callback?.message?.chat?.type === 'private' && callback.message.chat.id)
       || null;
-    if (privateChatId) await rememberCustomerChat(settings.bot_id, privateChatId).catch(() => {});
+    if (privateChatId) void rememberCustomerChat(settings.bot_id, privateChatId).catch(() => {});
 
     if (callback?.id) {
       const token = getDecryptedBotToken(settings);
@@ -416,16 +450,21 @@ export default async function telegramWebhook(req, res) {
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, 'categories');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
+      const loadingId = await startLoadingMessage(token, message.chat.id, 'Memuat kategori');
+      const loadingOptions = loadingId ? { loadingMessageId: loadingId } : {};
       const categories = await getCategories(settings.bot_id);
       // Nomor mengikuti nomor urut pada daftar ([1], [2], ...), bukan ID database.
       const category = resolveCategoryByNumber(categories, categoryMatch[1]);
       if (!category) {
         const products = await getCategoryProductCountRows(settings.bot_id);
-        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`, categoryMenuKeyboard());
+        const delivered = await deliverContent(token, message.chat.id, {
+          text: `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`,
+          replyMarkup: categoryMenuKeyboard()
+        }, loadingOptions);
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, 'categories');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
-      const delivered = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: category.id });
+      const delivered = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: category.id }, loadingOptions);
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
 
@@ -441,9 +480,11 @@ export default async function telegramWebhook(req, res) {
       // daftar kategori tampil, angka selalu membuka kategori (cukup ketik
       // "2"); setelah daftar/detail produk tampil, angka membuka produk.
       // Konteks ditimpa setiap kali bot menampilkan menu baru.
+      const loadingId = await startLoadingMessage(token, message.chat.id, 'Memuat pilihan');
+      const loadingOptions = loadingId ? { loadingMessageId: loadingId } : {};
       const menu = await getChatMenuContext(settings.bot_id, message.chat.id).catch(() => null);
       if (menu?.context === 'search_prompt') {
-        const delivered = await handleSearchRequest(token, message.chat.id, settings.bot_id, numberMatch[1]);
+        const delivered = await handleSearchRequest(token, message.chat.id, settings.bot_id, numberMatch[1], loadingOptions);
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
       if (menu?.context === 'categories') {
@@ -453,10 +494,13 @@ export default async function telegramWebhook(req, res) {
         ]);
         const category = resolveCategoryByNumber(categories, numberMatch[1]);
         if (category) {
-          const opened = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: category.id });
+          const opened = await sendCatalogPage(token, message.chat.id, settings.bot_id, 'category', 0, { categoryId: category.id }, loadingOptions);
           return sendJson(res, opened ? 200 : 502, { ok: opened });
         }
-        const delivered = await sendTelegramMessage(token, message.chat.id, `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`, categoryMenuKeyboard());
+        const delivered = await deliverContent(token, message.chat.id, {
+          text: `Nomor kategori tidak ditemukan.\n\n${categoryListText(categories, products)}`,
+          replyMarkup: categoryMenuKeyboard()
+        }, loadingOptions);
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, 'categories');
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
@@ -465,12 +509,12 @@ export default async function telegramWebhook(req, res) {
       const listContext = productListContextOrDefault(menu?.context);
       const product = await findProductByListNumber(settings.bot_id, listContext, numberMatch[1]);
       if (!product) {
-        const delivered = await sendTelegramMessage(token, message.chat.id, 'Nomor produk tidak ditemukan. Ketik /katalog untuk melihat daftar produk.', allProductsKeyboard());
+        const delivered = await deliverContent(token, message.chat.id, { text: 'Nomor produk tidak ditemukan. Ketik /katalog untuk melihat daftar produk.', replyMarkup: allProductsKeyboard() }, loadingOptions);
         if (delivered) await noteMenuContext(settings.bot_id, message.chat.id, listContext);
         return sendJson(res, delivered ? 200 : 502, { ok: delivered });
       }
-      await incrementProductView(settings.bot_id, product);
-      const delivered = await sendProductDetail(token, message.chat.id, settings.bot_id, product, settings.whatsapp_number, listContext);
+      void incrementProductView(settings.bot_id, product).catch(() => {});
+      const delivered = await sendProductDetail(token, message.chat.id, settings.bot_id, product, settings.whatsapp_number, listContext, loadingOptions);
       return sendJson(res, delivered ? 200 : 502, { ok: delivered });
     }
 
@@ -482,9 +526,10 @@ export default async function telegramWebhook(req, res) {
 
     if (!/^\/start(?:\s|$)/i.test(messageText)) return sendJson(res, 200, { ok: true });
     // Customer ini sudah dicatat sebagai penerima Kirim Pesan saat update masuk di atas.
-    // Gambar welcome (opsional) dikirim dulu seperti pada detail produk, lalu
-    // teks welcome + tombol dikirim langsung tanpa animasi loading tambahan.
+    // Loading sapaan muncul dulu agar customer langsung melihat indikator,
+    // termasuk saat welcome memakai gambar/GIF yang perlu waktu dikirim.
     // Kegagalan foto tidak pernah menggagalkan sapaan.
+    const loadingId = await startLoadingMessage(token, message.chat.id, 'Menyiapkan sapaan');
     if (settings.welcome_image_url) {
       await sendTelegramVisual(token, message.chat.id, settings.welcome_image_url).catch(() => false);
     }
@@ -493,7 +538,7 @@ export default async function telegramWebhook(req, res) {
       text: welcome.text,
       entities: welcome.entities,
       replyMarkup: { inline_keyboard: [[{ text: '🛍 Lihat katalog', callback_data: 'open_catalog' }]] }
-    }));
+    }), loadingId ? { loadingMessageId: loadingId } : {});
     return sendJson(res, delivered ? 200 : 502, { ok: delivered });
   } catch (error) {
     const status = error instanceof SettingsConfigurationError || error instanceof SettingsStorageError ? 503 : 500;
