@@ -479,22 +479,33 @@ footer a { text-decoration: none; }
 #productPricePreview.valid { color: #178a4c; font-weight: 750; }
 #productPricePreview.invalid { color: #c74557; font-weight: 750; }
 
-/* === Pencarian & visibilitas produk === */
+/* === Pencarian & visibilitas produk (tema terang, mengikuti kartu putih panel) === */
 .product-list-toolbar { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
 .product-search-field { position: relative; flex: 1 1 auto; display: flex; align-items: center; }
-.product-search-field > svg { position: absolute; left: 12px; width: 16px; height: 16px; color: #8ea0bd; pointer-events: none; }
-.product-search-field input { width: 100%; padding: 10px 14px 10px 36px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, .28); background: rgba(15, 23, 42, .45); color: inherit; font: inherit; font-size: 14px; }
-.product-search-field input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, .16); }
-.product-search-field input::placeholder { color: #7c8aa5; }
-.product-search-field input:disabled, #productVisibilityFilter:disabled { opacity: .55; cursor: not-allowed; }
-#productVisibilityFilter { padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, .28); background: rgba(15, 23, 42, .45); color: inherit; font: inherit; font-size: 13.5px; flex: 0 0 auto; }
-#productVisibilityFilter:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, .16); }
-.product-row.is-hidden { opacity: .55; }
-.product-row.is-hidden:hover { opacity: .8; }
-.product-hidden-badge { font-size: 10.5px; font-weight: 700; letter-spacing: .2px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: rgba(148, 163, 184, .18); color: #a9b6cc; white-space: nowrap; }
-.product-visibility.is-visible { color: #38bdf8; }
-.product-row-actions .product-visibility:not(.is-visible) { color: #a9b6cc; }
+.product-search-field > svg { position: absolute; left: 10px; width: 14px; height: 14px; color: #7d92a9; pointer-events: none; }
+.product-search-field input { width: 100%; height: 37px; padding: 0 12px 0 32px; color: #2e425c; background: #fff; border: 1px solid var(--line-dark); border-radius: 7px; outline: 0; font-size: 11px; transition: border .15s, box-shadow .15s; }
+.product-search-field input::placeholder { color: #9aa9bc; }
+.product-search-field input:focus { border-color: #5b9ee9; box-shadow: 0 0 0 3px rgba(40, 120, 232, .12); }
+.product-search-field input:disabled, #productVisibilityFilter:disabled { background: #f2f5f9; color: #9aa9bc; cursor: not-allowed; }
+#productVisibilityFilter { height: 37px; padding: 0 8px; color: #2e425c; background: #fff; border: 1px solid var(--line-dark); border-radius: 7px; outline: 0; font-size: 11px; flex: 0 0 auto; }
+#productVisibilityFilter:focus { border-color: #5b9ee9; box-shadow: 0 0 0 3px rgba(40, 120, 232, .12); }
+.product-row.is-hidden { background: #f2f5f9; border-style: dashed; }
+.product-row.is-hidden .product-row-body, .product-row.is-hidden .product-row-icon, .product-row.is-hidden .product-row-photo { opacity: .55; }
+.product-hidden-badge { padding: 2px 7px; color: #8a6372; background: var(--red-soft); border: 1px solid #f2d4da; border-radius: 20px; font-size: 8px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; white-space: nowrap; }
+.product-visibility.is-visible { color: #3d8bd4; }
+.product-row-actions .product-visibility:not(.is-visible) { color: #a4b3c4; }
 @media (max-width: 640px) {
   .product-list-toolbar { flex-direction: column; align-items: stretch; }
   #productVisibilityFilter { width: 100%; }
 }
+
+/* === Seret & letakkan untuk mengatur urutan produk === */
+.product-drag-handle { color: #9db2c8; cursor: grab; touch-action: none; }
+.product-drag-handle svg { width: 13px !important; height: 13px !important; }
+.product-drag-handle:hover { color: var(--blue); background: var(--blue-soft); }
+.product-drag-handle:active { cursor: grabbing; }
+.product-drag-handle.drag-disabled { opacity: .35; cursor: not-allowed; }
+.product-drag-handle.drag-disabled:hover { color: #9db2c8; background: transparent; }
+.product-row.dragging { opacity: .45; border-color: var(--blue); }
+.product-row.drop-target { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(40, 120, 232, .22); }
+.product-list.drag-active .product-row:not(.dragging) { border-style: dashed; }

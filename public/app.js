@@ -123,6 +123,7 @@
   let productQuery = '';
   let productVisibility = 'active';
   let displayedProducts = [];
+  let dragProductId = null;
   let broadcastAudience = 0;
   let broadcastImageData = '';
   const BROADCAST_TEXT_LIMIT = 4096;
@@ -537,6 +538,21 @@
     return svg;
   }
 
+  function makeDragIcon() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 20 20');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = '<path d="M7.2 4.5h1.7M7.2 10h1.7M7.2 15.5h1.7M11.1 4.5h1.7M11.1 10h1.7M11.1 15.5h1.7" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>';
+    return svg;
+  }
+
+  // Seret-urut hanya aktif pada daftar produk AKTIF tanpa pencarian aktif:
+  // pada tampilan tersaring (hasil cari / tersembunyi / semua) posisi visual
+  // tidak setara dengan urutan katalog sehingga target pindah bisa keliru.
+  function canDragSort() {
+    return isCatalogEnabled && productVisibility === 'active' && !productQuery.trim();
+  }
+
   function makeVisibilityIcon(isVisible) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 20 20');
@@ -601,6 +617,7 @@
     products.forEach((product) => {
       const row = document.createElement('article');
       row.className = `product-row${product.isActive ? '' : ' is-hidden'}`;
+      row.dataset.productId = String(product.id);
 
       const icon = document.createElement('span');
       icon.className = product.imageUrl ? 'product-row-photo' : 'product-row-icon';
@@ -652,6 +669,16 @@
       categoryAssign.value = product.categoryId ? String(product.categoryId) : '';
       body.append(categoryAssign);
 
+      const dragEnabled = canDragSort();
+      const dragHandle = document.createElement('button');
+      dragHandle.type = 'button';
+      dragHandle.className = `product-drag-handle${dragEnabled ? '' : ' drag-disabled'}`;
+      dragHandle.dataset.productId = String(product.id);
+      dragHandle.draggable = dragEnabled;
+      dragHandle.setAttribute('aria-label', `Seret ${product.name} untuk mengubah urutan`);
+      dragHandle.setAttribute('title', dragEnabled ? 'Seret ke atas/bawah untuk mengubah urutan' : 'Seret dinonaktifkan saat mencari atau melihat produk tersembunyi');
+      dragHandle.append(makeDragIcon());
+
       const moveUp = document.createElement('button');
       moveUp.type = 'button';
       moveUp.className = 'product-move-up';
@@ -697,7 +724,7 @@
 
       const actions = document.createElement('div');
       actions.className = 'product-row-actions';
-      actions.append(moveUp, popular, visibility, edit, remove);
+      actions.append(dragHandle, moveUp, popular, visibility, edit, remove);
       row.append(icon, body, actions);
       productList.append(row);
     });
@@ -1435,6 +1462,79 @@
       ? productVisibilityFilter.value
       : 'active';
     applyProductView();
+  });
+
+  // === Seret & letakkan (drag & drop) untuk mengatur urutan produk ===
+  function clearDragVisuals() {
+    productList.querySelectorAll('.product-row.dragging, .product-row.drop-target').forEach((row) => {
+      row.classList.remove('dragging', 'drop-target');
+    });
+    productList.classList.remove('drag-active');
+  }
+
+  productList.addEventListener('dragstart', (event) => {
+    const handle = event.target.closest('.product-drag-handle');
+    if (!handle || !canDragSort()) { event.preventDefault(); return; }
+    dragProductId = String(handle.dataset.productId || '');
+    const row = handle.closest('.product-row');
+    if (row) {
+      row.classList.add('dragging');
+      productList.classList.add('drag-active');
+      try { event.dataTransfer.setDragImage(row, 24, 24); } catch { /* diabaikan: sebagian browser lama */ }
+    }
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', dragProductId);
+  });
+
+  productList.addEventListener('dragover', (event) => {
+    if (!dragProductId) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const row = event.target.closest('.product-row');
+    productList.querySelectorAll('.product-row.drop-target').forEach((item) => {
+      if (item !== row) item.classList.remove('drop-target');
+    });
+    if (row && String(row.dataset.productId) !== dragProductId) row.classList.add('drop-target');
+  });
+
+  productList.addEventListener('dragleave', (event) => {
+    const row = event.target.closest('.product-row');
+    if (row && !row.contains(event.relatedTarget)) row.classList.remove('drop-target');
+  });
+
+  productList.addEventListener('dragend', () => {
+    dragProductId = null;
+    clearDragVisuals();
+  });
+
+  productList.addEventListener('drop', async (event) => {
+    if (!dragProductId) return;
+    event.preventDefault();
+    const row = event.target.closest('.product-row');
+    const targetId = row ? String(row.dataset.productId || '') : '';
+    const draggedId = dragProductId;
+    dragProductId = null;
+    clearDragVisuals();
+    if (!targetId || targetId === draggedId) return;
+    const dragged = displayedProducts.find((item) => String(item.id) === draggedId);
+    const target = displayedProducts.find((item) => String(item.id) === targetId);
+    if (!dragged || !target) return;
+    clearProductError();
+    try {
+      // Produk yang diseret mengambil posisi (sort_order) produk tujuan —
+      // sama seperti tombol naik, tetapi bisa melompat banyak baris sekaligus.
+      const { response, data } = await request('/api/products', {
+        method: 'PATCH', body: JSON.stringify({ id: dragged.id, moveTo: target.sortOrder })
+      });
+      if (!response.ok || !data.ok) {
+        showProductError(data.message || 'Urutan produk belum dapat diperbarui.');
+        return;
+      }
+      await loadProducts();
+      showProductError(`✓ ${dragged.name} berhasil dipindahkan.`, true);
+    } catch {
+      showProductError('Urutan produk belum dapat diperbarui. Coba lagi.');
+    }
   });
 
   productList.addEventListener('click', async (event) => {

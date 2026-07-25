@@ -210,12 +210,15 @@ async function sendProductDetail(token, chatId, botId, product, whatsappNumber) 
     if (!photoSent) return false;
   }
   const orderUrl = whatsappOrderUrl(whatsappNumber, product);
+  // Tombol box kembali selalu ada: customer tidak perlu mengetik /katalog lagi
+  // setelah membaca detail (atau menekan Pesan sekarang lalu kembali).
+  const backToCatalog = { text: '📋 Kembali ke katalog', callback_data: 'catalog_page:0' };
   const replyMarkup = orderUrl
-    ? { inline_keyboard: [[{ text: '🟢 Pesan sekarang', url: orderUrl }]] }
-    : undefined;
+    ? { inline_keyboard: [[{ text: '🟢 Pesan sekarang', url: orderUrl }], [backToCatalog]] }
+    : { inline_keyboard: [[backToCatalog]] };
   const contactHint = orderUrl
     ? '\n\nKlik Pesan sekarang untuk melanjutkan pemesanan via WhatsApp.'
-    : '\n\nKetik /katalog untuk kembali ke daftar produk.';
+    : '\n\nGunakan tombol di bawah untuk kembali ke daftar produk.';
   const delivered = await sendTelegramMessage(token, chatId, `${productDetailText(product)}${contactHint}`, replyMarkup);
   if (delivered) await noteMenuContext(botId, chatId, 'products');
   return delivered;

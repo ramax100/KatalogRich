@@ -15,7 +15,7 @@
 - **Hubungkan bot sekali klik** — tempel token BotFather, webhook Telegram terpasang otomatis.
 - **Multi bot** — kelola banyak bot dari satu panel: daftar bot, ubah token, hapus bot (katalog ikut terhapus aman).
 - **Pesan Welcome** — sapaan `/start` dengan variabel `{first_name}`, `{username}`, dll. + pratinjau langsung.
-- **Katalog Produk** — tambah/edit/hapus produk (kapasitas besar hingga **5.000 produk**), foto **opsional**, kategori, produk populer, dan atur urutan.
+- **Katalog Produk** — tambah/edit/hapus produk (kapasitas besar hingga **5.000 produk**), foto **opsional**, kategori, produk populer, dan atur urutan dengan **seret & letakkan (drag & drop)** atau tombol naik.
 - **Pencarian & sembunyikan produk** — cari produk langsung dari panel, dan sembunyikan produk tanpa menghapusnya; produk tersembunyi hilang dari katalog Telegram dan nomor urut di bot tetap rapi berurutan.
 - **Kirim Pesan (broadcast)** — kirim info promo ke semua customer, bisa **disertai gambar** (foto + caption).
 - **WhatsApp pemesanan** — tombol *Pesan sekarang* di bot langsung menuju chat WhatsApp toko Anda.
@@ -26,7 +26,7 @@
 - `/katalog` daftar produk berhalaman, `/populer` produk terlaris.
 - `/kategori` daftar kategori ringkas `[1] Nama (N produk)` — buka cukup dengan **ketik angkanya saja** (mis. `2`); perintah `/kategori 2` juga tetap bisa.
 - `/cari kata` atau ketik teks apa saja untuk mencari produk.
-- Ketik **nomor produk** untuk melihat detail + foto + tombol **Pesan sekarang** (WhatsApp).
+- Ketik **nomor produk** untuk melihat detail + foto + tombol **Pesan sekarang** (WhatsApp) dan tombol box **Kembali ke katalog**.
 
 ---
 
