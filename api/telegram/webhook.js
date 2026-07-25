@@ -364,7 +364,7 @@ async function sendProductDetail(token, chatId, botId, product, whatsappNumber, 
   // setelah membaca detail (atau menekan Pesan sekarang lalu kembali).
   const backToCatalog = allProductsButton();
   const replyMarkup = orderUrl
-    ? { inline_keyboard: [[{ text: '🟢 Pesan sekarang', url: orderUrl }], [backToCatalog]] }
+    ? { inline_keyboard: [[{ text: '🛒 Pesan sekarang', url: orderUrl }], [backToCatalog]] }
     : { inline_keyboard: [[backToCatalog]] };
   const contactHint = orderUrl
     ? '\n\nKlik Pesan sekarang untuk melanjutkan pemesanan via WhatsApp.'
