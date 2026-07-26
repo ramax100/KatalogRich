@@ -3,7 +3,6 @@
 **Katalog Rich Store** adalah panel admin web untuk membuat **toko katalog di bot Telegram** tanpa menulis kode bot sama sekali. Cukup hubungkan token bot dari BotFather, isi produk lewat panel, dan bot Anda langsung bisa melayani customer: menampilkan katalog, kategori, pencarian, produk populer, tombol pesan via WhatsApp, sampai kirim pengumuman (broadcast) ke semua customer — lengkap dengan login admin dan dukungan banyak bot.
 
 💬 **Komunitas & info update:** gabung channel Telegram kami di **[t.me/ChRichStore](https://t.me/ChRichStore)**
-🌐 **Contoh deployment:** [katalink-telegram.vercel.app](https://katalink-telegram.vercel.app)
 📄 **Lisensi:** [MIT](./LICENSE) — **gratis, bebas digunakan dan dimodifikasi** untuk keperluan pribadi maupun komersial.
 
 ---
