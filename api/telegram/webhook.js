@@ -12,7 +12,7 @@ import {
   telegramRequest
 } from '../../lib/telegram-settings.js';
 import {
-  catalogListText,
+  catalogListContent,
   getProducts,
   getPopularProducts,
   incrementProductView,
@@ -322,7 +322,7 @@ async function sendCatalogPage(token, chatId, botId, kind = 'catalog', offset = 
   const label = LOADING_LABELS[kind] || 'Memuat katalog';
   const delivered = await sendWithLoading(token, chatId, label, async () => {
     const page = await getCatalogPage(botId, kind, offset, state);
-    return { text: catalogListText(page.products, page.title, page.startNumber), replyMarkup: page.keyboard };
+    return { ...catalogListContent(page.products, page.title, page.startNumber, { boldProductNames: kind === 'search' }), replyMarkup: page.keyboard };
   }, options);
   if (delivered) await noteMenuContext(botId, chatId, contextForPage(kind, state));
   return delivered;
@@ -333,7 +333,7 @@ async function editCatalogPage(token, message, botId, kind, offset = 0, state = 
   const label = LOADING_LABELS[kind] || 'Memuat katalog';
   const delivered = await editWithLoading(token, message.chat.id, message.message_id, label, async () => {
     const page = await getCatalogPage(botId, kind, offset, state);
-    return { text: catalogListText(page.products, page.title, page.startNumber), replyMarkup: page.keyboard };
+    return { ...catalogListContent(page.products, page.title, page.startNumber, { boldProductNames: kind === 'search' }), replyMarkup: page.keyboard };
   });
   if (delivered) await noteMenuContext(botId, message.chat.id, contextForPage(kind, state));
   return delivered;
