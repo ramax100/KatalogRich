@@ -704,3 +704,32 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; letter-spacing: -.5px; }
   .detail-cart-icon { grid-column: 1; }
   .secondary-detail { grid-column: 2; }
 }
+
+
+/* === Ikon SVG marketplace/e-commerce === */
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.eco-icon {
+  width: 1.15em;
+  height: 1.15em;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: inline-block;
+  vertical-align: -0.17em;
+}
+.brand-bag .eco-icon { width: 24px; height: 24px; stroke-width: 2.2; }
+.header-action .eco-icon { width: 17px; height: 17px; }
+.promo-mini .eco-icon { width: 34px; height: 34px; stroke-width: 1.85; }
+.filter-title span .eco-icon { width: 16px; height: 16px; }
+.empty-state > span { display: grid; width: 48px; height: 48px; place-items: center; color: var(--red); background: var(--red-soft); border-radius: 50%; }
+.empty-state > span .eco-icon { width: 26px; height: 26px; }
+.mobile-nav span { display: grid; width: 22px; height: 22px; place-items: center; font-size: 0; }
+.mobile-nav span .eco-icon { width: 20px; height: 20px; }
+.cart-float-icon .eco-icon { width: 22px; height: 22px; stroke-width: 2.1; }
+.cart-empty > span { display: grid; width: 52px; height: 52px; place-items: center; color: var(--green); background: #edfff6; border-radius: 50%; }
+.cart-empty > span .eco-icon { width: 28px; height: 28px; }
+.card-order .eco-icon, .detail-direct-order .eco-icon { width: 16px; height: 16px; }
+.detail-cart-icon .eco-icon { width: 23px; height: 23px; }

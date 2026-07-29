@@ -332,8 +332,8 @@ function productCard(product) {
     : `<div class="image-fallback">${escapeHtml(productInitial(product.name))}</div>`;
   const popular = product.isPopular ? '<span class="product-badge">Populer</span>' : '';
   const order = state.store?.whatsappNumber
-    ? `<button class="card-order" type="button" data-cart="${product.id}" title="Tambah ke keranjang">🛒 Pesan</button>`
-    : '<span class="card-order disabled" title="Nomor WhatsApp belum tersedia">🛒 Pesan</span>';
+    ? `<button class="card-order" type="button" data-cart="${product.id}" title="Tambah ke keranjang"><svg class="eco-icon"><use href="#ico-cart"></use></svg> Pesan</button>`
+    : '<span class="card-order disabled" title="Nomor WhatsApp belum tersedia"><svg class="eco-icon"><use href="#ico-cart"></use></svg> Pesan</span>';
   return `
     <article class="product-card">
       <div class="product-media">${image}${popular}</div>

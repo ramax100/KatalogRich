@@ -6,9 +6,20 @@
     <meta name="theme-color" content="#e31b4b" />
     <title>Katalog Web — Belanja Produk</title>
     <meta name="description" content="Katalog produk web dengan pencarian, kategori, produk populer, dan pemesanan WhatsApp." />
-    <link rel="stylesheet" href="/store.css?v=20260729-cart5" />
+    <link rel="stylesheet" href="/store.css?v=20260729-icons1" />
   </head>
   <body>
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+      <symbol id="ico-store-bag" viewBox="0 0 24 24"><path d="M6.8 8.5h10.4l-.8 11H7.6l-.8-11Z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/><path d="M9.2 12h5.6"/></symbol>
+      <symbol id="ico-cart" viewBox="0 0 24 24"><path d="M4 5h2.1l1.7 9.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 1.9-1.4L20 8H7"/><circle cx="10" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></symbol>
+      <symbol id="ico-chat" viewBox="0 0 24 24"><path d="M5 6.8A3.8 3.8 0 0 1 8.8 3h6.4A3.8 3.8 0 0 1 19 6.8v4.9a3.8 3.8 0 0 1-3.8 3.8H11l-4.7 4v-4.3A3.8 3.8 0 0 1 5 12.2V6.8Z"/><path d="M9 8.4h6M9 11.4h4"/></symbol>
+      <symbol id="ico-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.8"/><path d="m15 15 4.5 4.5"/></symbol>
+      <symbol id="ico-home" viewBox="0 0 24 24"><path d="M4 11.4 12 4l8 7.4"/><path d="M6.5 10.4v8.1h11v-8.1"/><path d="M10 18.5v-5h4v5"/></symbol>
+      <symbol id="ico-category" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></symbol>
+      <symbol id="ico-trending" viewBox="0 0 24 24"><path d="M4 16.5 9.2 11l3.5 3.3L20 6.5"/><path d="M15.5 6.5H20V11"/></symbol>
+      <symbol id="ico-star" viewBox="0 0 24 24"><path d="m12 3.8 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3.8Z"/></symbol>
+      <symbol id="ico-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+    </svg>
     <div class="app-shell">
       <header class="market-header">
         <div class="top-strip">
@@ -17,7 +28,7 @@
         </div>
         <div class="header-main">
           <a class="store-brand" href="/" aria-label="Beranda katalog">
-            <span class="brand-bag" aria-hidden="true"><img id="storeLogo" class="store-logo-img hidden" alt="" /><span id="storeLogoFallback">🛍</span></span>
+            <span class="brand-bag" aria-hidden="true"><img id="storeLogo" class="store-logo-img hidden" alt="" /><span id="storeLogoFallback"><svg class="eco-icon brand-default-icon"><use href="#ico-store-bag"></use></svg></span></span>
             <span><strong id="storeName">Katalog Store</strong><small>WEB CATALOG</small></span>
           </a>
           <form id="searchForm" class="search-bar" role="search">
@@ -25,7 +36,7 @@
             <input id="searchInput" type="search" autocomplete="off" placeholder="Cari produk impianmu..." />
             <button type="submit">Cari</button>
           </form>
-          <button id="openPopular" class="header-action" type="button"><span>🔥</span> Populer</button>
+          <button id="openPopular" class="header-action" type="button"><svg class="eco-icon"><use href="#ico-trending"></use></svg> Populer</button>
         </div>
       </header>
 
@@ -42,8 +53,8 @@
           </div>
           <div class="hero-visual" aria-hidden="true">
             <div class="promo-card promo-main"><span>Diskon</span><strong>Produk Pilihan</strong><small>Update langsung dari admin</small></div>
-            <div class="promo-card promo-mini one">🛒</div>
-            <div class="promo-card promo-mini two">⭐</div>
+            <div class="promo-card promo-mini one"><svg class="eco-icon"><use href="#ico-cart"></use></svg></div>
+            <div class="promo-card promo-mini two"><svg class="eco-icon"><use href="#ico-star"></use></svg></div>
           </div>
         </section>
 
@@ -63,7 +74,7 @@
 
         <section class="content-grid">
           <aside class="filter-panel" aria-label="Filter produk">
-            <div class="filter-title"><span>☰</span><strong>Filter</strong></div>
+            <div class="filter-title"><span><svg class="eco-icon"><use href="#ico-filter"></use></svg></span><strong>Filter</strong></div>
             <label for="sortSelect">Urutkan</label>
             <select id="sortSelect">
               <option value="default">Rekomendasi</option>
@@ -88,7 +99,7 @@
               <span></span><span></span><span></span><span></span>
             </div>
             <div id="emptyState" class="empty-state hidden">
-              <span>🔎</span>
+              <span><svg class="eco-icon"><use href="#ico-search"></use></svg></span>
               <strong>Produk tidak ditemukan</strong>
               <p>Coba gunakan kata kunci lain atau pilih kategori berbeda.</p>
             </div>
@@ -98,16 +109,16 @@
       </main>
 
       <nav class="mobile-nav" aria-label="Navigasi mobile">
-        <button type="button" data-mobile-action="home"><span>🏠</span>Home</button>
-        <button type="button" data-mobile-action="category"><span>🧩</span>Kategori</button>
-        <button type="button" data-mobile-action="popular"><span>🔥</span>Populer</button>
-        <button type="button" data-mobile-action="search"><span>🔎</span>Cari</button>
+        <button type="button" data-mobile-action="home"><span><svg class="eco-icon"><use href="#ico-home"></use></svg></span>Home</button>
+        <button type="button" data-mobile-action="category"><span><svg class="eco-icon"><use href="#ico-category"></use></svg></span>Kategori</button>
+        <button type="button" data-mobile-action="popular"><span><svg class="eco-icon"><use href="#ico-trending"></use></svg></span>Populer</button>
+        <button type="button" data-mobile-action="search"><span><svg class="eco-icon"><use href="#ico-search"></use></svg></span>Cari</button>
       </nav>
     </div>
 
     <div id="cartWidget" class="cart-widget" aria-live="polite">
       <button id="cartFloat" class="cart-float" type="button" aria-expanded="false" aria-controls="cartPanel">
-        <span class="cart-float-icon">🛒</span>
+        <span class="cart-float-icon"><svg class="eco-icon"><use href="#ico-cart"></use></svg></span>
         <span><strong>Keranjang</strong><small id="cartMiniTotal">Rp0</small></span>
         <em id="cartCount">0</em>
       </button>
@@ -117,7 +128,7 @@
           <button id="cartClose" type="button" aria-label="Tutup keranjang">×</button>
         </header>
         <div id="cartItems" class="cart-items"></div>
-        <div id="cartEmpty" class="cart-empty"><span>🛒</span><strong>Keranjang kosong</strong><p>Klik tombol Pesan pada produk untuk memasukkannya ke keranjang.</p></div>
+        <div id="cartEmpty" class="cart-empty"><span><svg class="eco-icon"><use href="#ico-cart"></use></svg></span><strong>Keranjang kosong</strong><p>Klik tombol Pesan pada produk untuk memasukkannya ke keranjang.</p></div>
         <footer class="cart-footer">
           <div class="cart-total-row"><span>Total</span><strong id="cartTotal">Rp0</strong></div>
           <div class="cart-footer-actions">
@@ -139,14 +150,14 @@
           <strong id="detailPrice" class="detail-price">Rp0</strong>
           <p id="detailDescription" class="detail-description">Deskripsi produk.</p>
           <div class="detail-actions">
-            <a id="detailDirectOrder" class="order-button detail-direct-order" target="_blank" rel="noreferrer">💬 Pesan langsung</a>
-            <button id="detailOrder" class="order-button detail-cart-icon" type="button" aria-label="Masukkan ke keranjang" title="Masukkan ke keranjang">🛒</button>
+            <a id="detailDirectOrder" class="order-button detail-direct-order" target="_blank" rel="noreferrer"><svg class="eco-icon"><use href="#ico-chat"></use></svg> Pesan langsung</a>
+            <button id="detailOrder" class="order-button detail-cart-icon" type="button" aria-label="Masukkan ke keranjang" title="Masukkan ke keranjang"><svg class="eco-icon"><use href="#ico-cart"></use></svg></button>
             <button id="detailClose" class="secondary-detail" type="button" data-close-detail>Lanjut belanja</button>
           </div>
         </div>
       </article>
     </div>
 
-    <script src="/store.js?v=20260729-cart5"></script>
+    <script src="/store.js?v=20260729-icons1"></script>
   </body>
 </html>
