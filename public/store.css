@@ -681,3 +681,26 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; letter-spacing: -.5px; }
   }
   .secondary-detail { width: 100%; }
 }
+
+
+/* Tombol pesan langsung di modal detail */
+.detail-direct-order {
+  min-width: 154px;
+  background: var(--green);
+}
+.detail-direct-order:hover {
+  background: #0f925b;
+  transform: translateY(-1px);
+}
+@media (max-width: 520px) {
+  .detail-actions {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+  }
+  .detail-direct-order {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .detail-cart-icon { grid-column: 1; }
+  .secondary-detail { grid-column: 2; }
+}

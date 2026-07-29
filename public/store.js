@@ -43,6 +43,7 @@ const els = {
   detailTitle: document.getElementById('detailTitle'),
   detailPrice: document.getElementById('detailPrice'),
   detailDescription: document.getElementById('detailDescription'),
+  detailDirectOrder: document.getElementById('detailDirectOrder'),
   detailOrder: document.getElementById('detailOrder'),
   cartWidget: document.getElementById('cartWidget'),
   cartFloat: document.getElementById('cartFloat'),
@@ -363,6 +364,13 @@ function openDetail(productId) {
   } else {
     els.detailImageWrap.classList.add('hidden');
     els.detailImage.removeAttribute('src');
+  }
+  if (product.orderUrl) {
+    els.detailDirectOrder.classList.remove('hidden');
+    els.detailDirectOrder.href = product.orderUrl;
+  } else {
+    els.detailDirectOrder.classList.add('hidden');
+    els.detailDirectOrder.removeAttribute('href');
   }
   if (state.store?.whatsappNumber) {
     els.detailOrder.classList.remove('hidden');
