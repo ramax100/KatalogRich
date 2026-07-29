@@ -124,12 +124,14 @@ async function serveStatic(req, res, pathname) {
   }
 
   const routeAliases = new Map([
+    ['/admin', '/index.html'],
+    ['/panel', '/index.html'],
     ['/katalog-web', '/store.html'],
     ['/katalog', '/store.html'],
     ['/store', '/store.html'],
     ['/toko', '/store.html']
   ]);
-  const requested = pathname === '/' ? '/index.html' : (routeAliases.get(pathname) || pathname);
+  const requested = pathname === '/' ? '/store.html' : (routeAliases.get(pathname) || pathname);
   const cleanPath = path.normalize(requested).replace(/^[/\\]+/, '');
   const filePath = path.join(publicDir, cleanPath);
   if (!filePath.startsWith(publicDir + path.sep) && filePath !== path.join(publicDir, 'index.html')) {
