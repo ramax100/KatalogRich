@@ -139,10 +139,9 @@ async function serveStatic(req, res, pathname) {
   }
 
   const routeAliases = new Map([
-    ['/admin', '/index.html'],
-    ['/panel', '/index.html']
+    ['/admin', '/index.html']
   ]);
-  if (['/katalog-web', '/katalog', '/store', '/toko', '/store.html'].includes(pathname)) {
+  if (['/panel', '/katalog-web', '/katalog', '/store', '/toko', '/store.html'].includes(pathname)) {
     return sendJson(res, 404, { ok: false, message: 'Halaman katalog tersedia di beranda.' });
   }
   const requested = routeAliases.get(pathname) || pathname;
