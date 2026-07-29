@@ -525,6 +525,61 @@
   }
 
 
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => resolve(typeof reader.result === 'string' ? reader.result : ''));
+      reader.addEventListener('error', () => reject(new Error('READ_FAILED')));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function cropStoreLogoFile(file) {
+    // GIF animasi tidak dicrop lewat canvas karena akan berubah menjadi gambar
+    // diam. GIF tetap ditampilkan pas di header dengan object-fit: cover.
+    if (file.type === 'image/gif') {
+      return readFileAsDataUrl(file).then((dataUrl) => ({ dataUrl, cropped: false }));
+    }
+
+    return readFileAsDataUrl(file).then((dataUrl) => new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => {
+        try {
+          const sourceWidth = image.naturalWidth || image.width;
+          const sourceHeight = image.naturalHeight || image.height;
+          const sourceSize = Math.min(sourceWidth, sourceHeight);
+          if (!sourceSize) throw new Error('EMPTY_IMAGE');
+
+          const sourceX = Math.floor((sourceWidth - sourceSize) / 2);
+          const sourceY = Math.floor((sourceHeight - sourceSize) / 2);
+          const outputSize = Math.min(512, sourceSize);
+          const canvas = document.createElement('canvas');
+          canvas.width = outputSize;
+          canvas.height = outputSize;
+          const context = canvas.getContext('2d');
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = 'high';
+          context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, outputSize, outputSize);
+
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              resolve({ dataUrl: canvas.toDataURL('image/png'), cropped: true });
+              return;
+            }
+            const reader = new FileReader();
+            reader.addEventListener('load', () => resolve({ dataUrl: reader.result, cropped: true }));
+            reader.addEventListener('error', () => reject(new Error('CROP_READ_FAILED')));
+            reader.readAsDataURL(blob);
+          }, 'image/png');
+        } catch (error) {
+          reject(error);
+        }
+      });
+      image.addEventListener('error', () => reject(new Error('IMAGE_LOAD_FAILED')));
+      image.src = dataUrl;
+    }));
+  }
+
   function renderStoreLogoAttachment() {
     const shown = storeLogoData || storeLogoUrlSaved;
     storeLogoPreview.classList.toggle('hidden', !shown);
@@ -1390,7 +1445,7 @@
     }
   });
 
-  storeLogoImage.addEventListener('change', () => {
+  storeLogoImage.addEventListener('change', async () => {
     const file = storeLogoImage.files?.[0];
     storeLogoState.classList.remove('success');
     if (!file) return;
@@ -1404,19 +1459,26 @@
       storeLogoState.textContent = 'Ukuran logo maksimal 3 MB.';
       return;
     }
-    const reader = new FileReader();
-    reader.addEventListener('load', () => {
-      storeLogoData = typeof reader.result === 'string' ? reader.result : '';
-      storeLogoFileName = file.name;
+
+    storeLogoState.textContent = file.type === 'image/gif'
+      ? 'Memuat logo GIF…'
+      : 'Memotong logo otomatis agar pas di header web…';
+    try {
+      const processed = await cropStoreLogoFile(file);
+      storeLogoData = processed.dataUrl;
+      storeLogoFileName = processed.cropped ? `${file.name} · auto crop` : file.name;
       storeLogoRemoved = false;
       renderStoreLogoAttachment();
-      storeLogoState.textContent = 'Logo header baru siap disimpan.';
-    });
-    reader.addEventListener('error', () => {
+      storeLogoState.textContent = processed.cropped
+        ? 'Logo otomatis dicrop persegi dan siap disimpan.'
+        : 'Logo GIF siap disimpan. Tampilannya akan otomatis disesuaikan di header web.';
+    } catch {
+      storeLogoData = '';
+      storeLogoFileName = '';
       storeLogoImage.value = '';
-      storeLogoState.textContent = 'Logo belum dapat dibaca. Silakan pilih file lain.';
-    });
-    reader.readAsDataURL(file);
+      renderStoreLogoAttachment();
+      storeLogoState.textContent = 'Logo belum dapat diproses. Silakan pilih gambar lain.';
+    }
   });
 
   clearStoreLogoButton.addEventListener('click', () => {
