@@ -147,7 +147,7 @@ function renderCart() {
     </article>`).join('');
 }
 
-function addToCart(productId, { open = true } = {}) {
+function addToCart(productId, { open = false } = {}) {
   const product = state.products.find((item) => String(item.id) === String(productId));
   if (!product) return;
   const existing = state.cart.find((item) => String(item.id) === String(product.id));

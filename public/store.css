@@ -644,3 +644,18 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; letter-spacing: -.5px; }
   .cart-item-side { grid-column: 2; grid-template-columns: 1fr auto; width: 100%; align-items: center; }
   .cart-footer-actions { grid-template-columns: 1fr; }
 }
+
+
+/* Keranjang dipindah ke kanan bawah dan tidak dibuka otomatis saat klik Pesan */
+.cart-widget {
+  left: auto;
+  right: 22px;
+  justify-items: end;
+}
+@media (max-width: 720px) {
+  .cart-widget {
+    left: 12px;
+    right: 12px;
+    justify-items: end;
+  }
+}
