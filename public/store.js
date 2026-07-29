@@ -248,7 +248,7 @@ function setLoading(isLoading) {
 }
 
 function renderStoreInfo() {
-  const name = state.store?.name || 'Katalog Store';
+  const name = state.store?.name || 'Rich Store';
   document.title = `${name} — Katalog Web`;
   els.storeName.textContent = name;
   els.botUsername.textContent = state.store?.username ? `@${state.store.username}` : '';

@@ -34,6 +34,13 @@ async function resolveStoreSettings(req) {
   return getSettingsByUsername(bot);
 }
 
+
+function storefrontDisplayName(settings) {
+  const rawName = String(settings?.bot_first_name || '').trim();
+  const withoutCatalogSuffix = rawName.replace(/\s+katalog\s*$/i, '').trim();
+  return withoutCatalogSuffix || rawName || 'Rich Store';
+}
+
 function publicProduct(product, whatsappNumber) {
   return {
     id: product.id,
@@ -85,7 +92,7 @@ export default async function store(req, res) {
     return sendJson(res, 200, {
       ok: true,
       store: {
-        name: settings.bot_first_name || 'Katalog Store',
+        name: storefrontDisplayName(settings),
         username: settings.bot_username || '',
         whatsappNumber: settings.whatsapp_number || '',
         logoUrl: logoExists ? getStoreLogoUrl(settings.bot_id, settings.updated_at || '') : ''
