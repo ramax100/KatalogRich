@@ -127,12 +127,11 @@ async function serveStatic(req, res, pathname) {
 
   const routeAliases = new Map([
     ['/admin', '/index.html'],
-    ['/panel', '/index.html'],
-    ['/katalog-web', '/store.html'],
-    ['/katalog', '/store.html'],
-    ['/store', '/store.html'],
-    ['/toko', '/store.html']
+    ['/panel', '/index.html']
   ]);
+  if (['/katalog-web', '/katalog', '/store', '/toko', '/store.html'].includes(pathname)) {
+    return sendJson(res, 404, { ok: false, message: 'Halaman katalog tersedia di beranda.' });
+  }
   const requested = pathname === '/' ? '/store.html' : (routeAliases.get(pathname) || pathname);
   const cleanPath = path.normalize(requested).replace(/^[/\\]+/, '');
   const filePath = path.join(publicDir, cleanPath);
