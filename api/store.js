@@ -8,6 +8,7 @@ import {
 } from '../lib/telegram-settings.js';
 import { MAX_PRODUCTS, formatRupiah, getPopularProducts, getProducts, whatsappOrderUrl } from '../lib/catalog-products.js';
 import { getCategories } from '../lib/catalog-categories.js';
+import { getStoreLogoUrl, storeLogoExists } from '../lib/product-images.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '8kb' } }
@@ -67,10 +68,11 @@ export default async function store(req, res) {
     const settings = await resolveStoreSettings(req);
     if (!settings) return sendJson(res, 404, { ok: false, message: 'Katalog belum tersedia.' });
 
-    const [products, popularProducts, categories] = await Promise.all([
+    const [products, popularProducts, categories, logoExists] = await Promise.all([
       getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS }),
       getPopularProducts(settings.bot_id, { limit: 24 }),
-      getCategories(settings.bot_id)
+      getCategories(settings.bot_id),
+      storeLogoExists(settings.bot_id)
     ]);
 
     const counts = categoryCounts(products);
@@ -85,7 +87,8 @@ export default async function store(req, res) {
       store: {
         name: settings.bot_first_name || 'Katalog Store',
         username: settings.bot_username || '',
-        whatsappNumber: settings.whatsapp_number || ''
+        whatsappNumber: settings.whatsapp_number || '',
+        logoUrl: logoExists ? getStoreLogoUrl(settings.bot_id, settings.updated_at || '') : ''
       },
       categories: categories.map((category) => ({
         id: category.id,

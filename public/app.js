@@ -87,6 +87,17 @@
   const whatsappButtonText = document.querySelector('.whatsapp-button-text');
   const whatsappState = document.querySelector('#whatsappState');
 
+  const storeLogoForm = document.querySelector('#storeLogoForm');
+  const storeLogoImage = document.querySelector('#storeLogoImage');
+  const storeLogoPicker = document.querySelector('#storeLogoPicker');
+  const storeLogoLabel = document.querySelector('#storeLogoLabel');
+  const storeLogoPreview = document.querySelector('#storeLogoPreview');
+  const storeLogoPreviewImg = document.querySelector('#storeLogoPreviewImg');
+  const clearStoreLogoButton = document.querySelector('#clearStoreLogo');
+  const saveStoreLogoButton = document.querySelector('#saveStoreLogoButton');
+  const storeLogoButtonText = document.querySelector('.store-logo-button-text');
+  const storeLogoState = document.querySelector('#storeLogoState');
+
   const panelControls = [...document.querySelectorAll('[data-panel-target]')];
   const breadcrumbCurrent = document.querySelector('#breadcrumbCurrent');
   const content = document.querySelector('.content');
@@ -126,6 +137,11 @@
   let welcomeImageRemoved = false;
   let welcomeImageUrlSaved = '';
   let welcomeImageFileName = '';
+  let storeLogoData = '';
+  let storeLogoRemoved = false;
+  let storeLogoUrlSaved = '';
+  let storeLogoFileName = '';
+  let isStoreLogoEnabled = false;
   let categories = [];
   let editingProduct = null;
   // allProducts = sumber kebenaran dari server; displayedProducts = hasil
@@ -508,6 +524,70 @@
     categoryButtonText.textContent = saving ? 'Menyimpan…' : 'Tambah';
   }
 
+
+  function renderStoreLogoAttachment() {
+    const shown = storeLogoData || storeLogoUrlSaved;
+    storeLogoPreview.classList.toggle('hidden', !shown);
+    if (shown) {
+      storeLogoPreviewImg.src = shown;
+      const markedRemoval = !storeLogoData && storeLogoRemoved;
+      storeLogoPreview.classList.toggle('marked-removal', markedRemoval);
+      clearStoreLogoButton.textContent = markedRemoval ? '↺' : '×';
+      clearStoreLogoButton.setAttribute('aria-label', markedRemoval ? 'Batalkan penghapusan logo toko' : 'Hapus logo toko');
+      storeLogoLabel.textContent = storeLogoData
+        ? (storeLogoFileName || 'Logo baru terpilih')
+        : 'Logo saat ini — pilih untuk mengganti';
+    } else {
+      storeLogoPreview.classList.remove('marked-removal');
+      clearStoreLogoButton.textContent = '×';
+      storeLogoLabel.textContent = 'Pilih logo toko';
+      storeLogoPreviewImg.removeAttribute('src');
+    }
+  }
+
+  function setStoreLogoState(enabled, message = '') {
+    isStoreLogoEnabled = enabled;
+    storeLogoImage.disabled = !enabled;
+    storeLogoPicker.classList.toggle('disabled', !enabled);
+    saveStoreLogoButton.disabled = !enabled;
+    storeLogoState.textContent = message || (enabled ? 'Logo ini tampil di halaman utama katalog web.' : 'Hubungkan bot untuk mengatur logo toko web.');
+    storeLogoState.classList.remove('success');
+    if (!enabled) {
+      storeLogoData = '';
+      storeLogoRemoved = false;
+      storeLogoUrlSaved = '';
+      storeLogoFileName = '';
+      storeLogoImage.value = '';
+      renderStoreLogoAttachment();
+    }
+  }
+
+  function setStoreLogoSaving(saving) {
+    saveStoreLogoButton.disabled = saving || !isStoreLogoEnabled;
+    saveStoreLogoButton.classList.toggle('loading', saving);
+    storeLogoButtonText.textContent = saving ? 'Menyimpan…' : 'Simpan logo';
+  }
+
+  async function loadStoreLogo() {
+    try {
+      const { response, data } = await request('/api/store-logo', { method: 'GET' });
+      if (!response.ok || !data.ok) {
+        setStoreLogoState(false, data.message || 'Logo toko belum dapat dimuat.');
+        return;
+      }
+      storeLogoData = '';
+      storeLogoRemoved = false;
+      storeLogoUrlSaved = data.logoUrl || '';
+      storeLogoFileName = '';
+      storeLogoImage.value = '';
+      renderStoreLogoAttachment();
+      setStoreLogoState(true, data.logoUrl ? 'Logo toko web aktif.' : 'Belum ada logo toko. Pilih gambar lalu simpan.');
+      if (data.logoUrl) storeLogoState.classList.add('success');
+    } catch {
+      setStoreLogoState(false, 'Logo toko belum dapat dimuat.');
+    }
+  }
+
   function setWhatsAppState(enabled, message = '', number = '') {
     isWhatsAppEnabled = enabled;
     whatsappNumber.disabled = !enabled;
@@ -539,6 +619,7 @@
     if (!enabled) {
       setWhatsAppState(false);
       setCategoryState(false);
+      setStoreLogoState(false);
       resetProductEditor();
       allProducts = [];
       displayedProducts = [];
@@ -1000,6 +1081,7 @@
 
   async function loadActiveBotData() {
     await loadWelcome();
+    await loadStoreLogo();
     await loadCategories();
     await loadProducts();
     await loadWhatsApp();
@@ -1307,6 +1389,81 @@
       whatsappState.classList.remove('success');
     }
   });
+
+  storeLogoImage.addEventListener('change', () => {
+    const file = storeLogoImage.files?.[0];
+    storeLogoState.classList.remove('success');
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      storeLogoImage.value = '';
+      storeLogoState.textContent = 'Pilih logo berformat JPG, PNG, WEBP, atau GIF.';
+      return;
+    }
+    if (file.size > 3_000_000) {
+      storeLogoImage.value = '';
+      storeLogoState.textContent = 'Ukuran logo maksimal 3 MB.';
+      return;
+    }
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      storeLogoData = typeof reader.result === 'string' ? reader.result : '';
+      storeLogoFileName = file.name;
+      storeLogoRemoved = false;
+      renderStoreLogoAttachment();
+      storeLogoState.textContent = 'Logo baru siap disimpan.';
+    });
+    reader.addEventListener('error', () => {
+      storeLogoImage.value = '';
+      storeLogoState.textContent = 'Logo belum dapat dibaca. Silakan pilih file lain.';
+    });
+    reader.readAsDataURL(file);
+  });
+
+  clearStoreLogoButton.addEventListener('click', () => {
+    storeLogoState.classList.remove('success');
+    if (storeLogoData || storeLogoRemoved) {
+      storeLogoData = '';
+      storeLogoFileName = '';
+      storeLogoImage.value = '';
+      storeLogoRemoved = false;
+    } else if (storeLogoUrlSaved) {
+      storeLogoRemoved = true;
+      storeLogoState.textContent = 'Logo akan dihapus saat disimpan — klik ↺ untuk batal.';
+    }
+    renderStoreLogoAttachment();
+  });
+
+  storeLogoForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!storeLogoData && !storeLogoRemoved) {
+      storeLogoState.textContent = storeLogoUrlSaved ? 'Pilih logo baru atau tekan × untuk menghapus logo.' : 'Pilih gambar logo terlebih dahulu.';
+      return;
+    }
+    setStoreLogoSaving(true);
+    try {
+      const { response, data } = await request('/api/store-logo', {
+        method: 'POST',
+        body: JSON.stringify({ imageData: storeLogoData, removeLogo: storeLogoRemoved })
+      });
+      if (!response.ok || !data.ok) {
+        storeLogoState.textContent = data.message || 'Logo toko belum dapat disimpan.';
+        return;
+      }
+      storeLogoData = '';
+      storeLogoRemoved = false;
+      storeLogoFileName = '';
+      storeLogoImage.value = '';
+      storeLogoUrlSaved = data.logoUrl || '';
+      renderStoreLogoAttachment();
+      storeLogoState.textContent = data.logoUrl ? '✓ Logo toko berhasil disimpan dan tampil di katalog web.' : 'Logo toko berhasil dihapus.';
+      storeLogoState.classList.add('success');
+    } catch {
+      storeLogoState.textContent = 'Logo toko belum dapat disimpan. Coba lagi.';
+    } finally {
+      setStoreLogoSaving(false);
+    }
+  });
+
 
   variableButtons.forEach((button) => {
     button.addEventListener('click', () => {

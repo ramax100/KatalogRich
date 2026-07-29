@@ -17,6 +17,7 @@ import bots from './api/bots.js';
 import authLogin from './api/auth/login.js';
 import authLogout from './api/auth/logout.js';
 import store from './api/store.js';
+import storeLogo from './api/store-logo.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
@@ -48,7 +49,8 @@ const apiHandlers = new Map([
   ['/api/bots', bots],
   ['/api/auth/login', authLogin],
   ['/api/auth/logout', authLogout],
-  ['/api/store', store]
+  ['/api/store', store],
+  ['/api/store-logo', storeLogo]
 ]);
 
 function setStaticSecurityHeaders(res) {

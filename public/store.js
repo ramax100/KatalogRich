@@ -11,6 +11,8 @@ const state = {
 const els = {
   storeName: document.getElementById('storeName'),
   botUsername: document.getElementById('botUsername'),
+  storeLogo: document.getElementById('storeLogo'),
+  storeLogoFallback: document.getElementById('storeLogoFallback'),
   searchForm: document.getElementById('searchForm'),
   searchInput: document.getElementById('searchInput'),
   openPopular: document.getElementById('openPopular'),
@@ -94,6 +96,15 @@ function renderStoreInfo() {
   document.title = `${name} — Katalog Web`;
   els.storeName.textContent = name;
   els.botUsername.textContent = state.store?.username ? `@${state.store.username}` : '';
+  if (state.store?.logoUrl) {
+    els.storeLogo.src = state.store.logoUrl;
+    els.storeLogo.classList.remove('hidden');
+    els.storeLogoFallback.classList.add('hidden');
+  } else {
+    els.storeLogo.removeAttribute('src');
+    els.storeLogo.classList.add('hidden');
+    els.storeLogoFallback.classList.remove('hidden');
+  }
   els.totalProducts.textContent = state.products.length.toLocaleString('id-ID');
   els.totalCategories.textContent = state.categories.length.toLocaleString('id-ID');
   els.totalPopular.textContent = state.products.filter((product) => product.isPopular).length.toLocaleString('id-ID');
@@ -285,6 +296,12 @@ els.heroShopButton.addEventListener('click', scrollToProducts);
 els.heroCategoryButton.addEventListener('click', () => els.categorySection.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 document.querySelectorAll('[data-close-detail]').forEach((el) => el.addEventListener('click', closeDetail));
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeDetail(); });
+els.storeLogo.addEventListener('error', () => {
+  els.storeLogo.removeAttribute('src');
+  els.storeLogo.classList.add('hidden');
+  els.storeLogoFallback.classList.remove('hidden');
+});
+
 document.querySelectorAll('[data-mobile-action]').forEach((button) => {
   button.addEventListener('click', () => {
     const action = button.dataset.mobileAction;
