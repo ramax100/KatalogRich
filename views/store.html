@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/store.css?v=20260729-cartstyle1" />
+    <link rel="stylesheet" href="/store.css?v=20260729-cartstyle2" />
   </head>
   <body>
     <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -128,7 +128,7 @@
       <section id="cartPanel" class="cart-panel hidden" aria-label="Keranjang belanja">
         <header class="cart-panel-head">
           <div><strong>Keranjang belanja</strong><small id="cartPanelSubtitle">Belanja beberapa produk sekaligus</small></div>
-          <button id="cartClose" type="button" aria-label="Tutup keranjang">×</button>
+          <button id="cartClose" type="button" aria-label="Tutup keranjang"><svg class="close-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5 14.5 14.5M14.5 5.5 5.5 14.5"/></svg></button>
         </header>
         <div id="cartItems" class="cart-items"></div>
         <div id="cartEmpty" class="cart-empty"><span><svg class="eco-icon"><use href="#ico-cart"></use></svg></span><strong>Keranjang kosong</strong><p>Klik tombol Pesan pada produk untuk memasukkannya ke keranjang.</p></div>
@@ -145,7 +145,7 @@
     <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
       <div class="modal-backdrop" data-close-detail></div>
       <article class="detail-sheet">
-        <button class="modal-close" type="button" data-close-detail aria-label="Tutup detail">×</button>
+        <button class="modal-close" type="button" data-close-detail aria-label="Tutup detail"><svg class="close-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5 14.5 14.5M14.5 5.5 5.5 14.5"/></svg></button>
         <div id="detailImageWrap" class="detail-image-wrap"><img id="detailImage" alt="Foto produk" /></div>
         <div class="detail-body">
           <span id="detailBadge" class="detail-badge">Produk</span>
