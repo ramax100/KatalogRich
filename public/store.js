@@ -162,8 +162,8 @@ function productCard(product) {
     : `<div class="image-fallback">${escapeHtml(productInitial(product.name))}</div>`;
   const popular = product.isPopular ? '<span class="product-badge">Populer</span>' : '';
   const order = product.orderUrl
-    ? `<a class="card-order" href="${escapeHtml(product.orderUrl)}" target="_blank" rel="noreferrer" title="Pesan via WhatsApp">🛒</a>`
-    : '<span class="card-order disabled" title="Nomor WhatsApp belum tersedia">🛒</span>';
+    ? `<a class="card-order" href="${escapeHtml(product.orderUrl)}" target="_blank" rel="noreferrer" title="Pesan via WhatsApp">🛒 Pesan</a>`
+    : '<span class="card-order disabled" title="Nomor WhatsApp belum tersedia">🛒 Pesan</span>';
   return `
     <article class="product-card">
       <div class="product-media">${image}${popular}</div>

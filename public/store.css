@@ -427,3 +427,32 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; letter-spacing: -.5px; }
   .product-actions { grid-template-columns: 1fr auto; }
   .card-order { display: inline-flex !important; }
 }
+
+
+/* Tombol keranjang dibuat lebih jelas */
+.product-actions { grid-template-columns: minmax(0, 1fr) minmax(92px, auto); }
+.card-order {
+  gap: 5px;
+  min-width: 92px;
+  padding: 0 12px;
+  box-shadow: 0 8px 18px rgba(19, 165, 103, .18);
+  white-space: nowrap;
+}
+.card-order:hover:not(.disabled) {
+  background: #0f925b;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 720px) {
+  .product-actions { grid-template-columns: 1fr; }
+  .card-order {
+    display: inline-flex !important;
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+  }
+}
+
+@media (max-width: 380px) {
+  .product-actions { grid-template-columns: 1fr; }
+}
