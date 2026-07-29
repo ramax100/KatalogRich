@@ -21,6 +21,7 @@ import storeLogo from './api/store-logo.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
+const storeHtmlPath = path.join(__dirname, 'views', 'store.html');
 const PORT = Number(process.env.PORT || 3000);
 
 const MIME_TYPES = {
@@ -125,6 +126,18 @@ async function serveStatic(req, res, pathname) {
     return sendJson(res, 405, { ok: false, message: 'Metode tidak didukung.' });
   }
 
+  if (pathname === '/') {
+    try {
+      const data = await readFile(storeHtmlPath);
+      setStaticSecurityHeaders(res);
+      res.writeHead(200, { 'Content-Type': MIME_TYPES['.html'] });
+      res.end(req.method === 'HEAD' ? undefined : data);
+    } catch {
+      sendJson(res, 404, { ok: false, message: 'Halaman katalog tidak ditemukan.' });
+    }
+    return;
+  }
+
   const routeAliases = new Map([
     ['/admin', '/index.html'],
     ['/panel', '/index.html']
@@ -132,7 +145,7 @@ async function serveStatic(req, res, pathname) {
   if (['/katalog-web', '/katalog', '/store', '/toko', '/store.html'].includes(pathname)) {
     return sendJson(res, 404, { ok: false, message: 'Halaman katalog tersedia di beranda.' });
   }
-  const requested = pathname === '/' ? '/store.html' : (routeAliases.get(pathname) || pathname);
+  const requested = routeAliases.get(pathname) || pathname;
   const cleanPath = path.normalize(requested).replace(/^[/\\]+/, '');
   const filePath = path.join(publicDir, cleanPath);
   if (!filePath.startsWith(publicDir + path.sep) && filePath !== path.join(publicDir, 'index.html')) {
