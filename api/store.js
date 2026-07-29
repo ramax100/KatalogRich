@@ -14,7 +14,7 @@ export const config = {
   api: { bodyParser: { sizeLimit: '8kb' } }
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 26;
 
 function normalizeBotSlug(value) {
   return String(value || '').trim().replace(/^@/, '').slice(0, 80);

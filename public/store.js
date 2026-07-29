@@ -8,7 +8,7 @@ const state = {
   sort: 'default',
   cart: [],
   stats: { totalProducts: 0, totalCategories: 0, totalPopular: 0 },
-  pagination: { limit: 25, nextOffset: null, hasMore: false },
+  pagination: { limit: 26, nextOffset: null, hasMore: false },
   loadingMore: false
 };
 
@@ -399,7 +399,7 @@ function scrollToProducts() {
 
 function storeQueryUrl(offset = 0) {
   const params = new URLSearchParams();
-  params.set('limit', String(state.pagination.limit || 25));
+  params.set('limit', String(state.pagination.limit || 26));
   params.set('offset', String(offset));
   if (state.query.trim()) params.set('q', state.query.trim());
   if (state.categoryId !== 'all') params.set('categoryId', state.categoryId);
@@ -419,7 +419,7 @@ function applyStorePayload(data, { append = false } = {}) {
   const incoming = Array.isArray(data.products) ? data.products : [];
   state.products = append ? [...state.products, ...incoming] : incoming;
   state.pagination = {
-    limit: Number(data.pagination?.limit || 25),
+    limit: Number(data.pagination?.limit || 26),
     nextOffset: data.pagination?.nextOffset ?? null,
     hasMore: Boolean(data.pagination?.hasMore)
   };
