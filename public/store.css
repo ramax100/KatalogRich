@@ -659,3 +659,25 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; letter-spacing: -.5px; }
     justify-items: end;
   }
 }
+
+
+/* Tombol keranjang di modal detail: ikon saja */
+.detail-cart-icon {
+  width: 52px;
+  min-width: 52px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+.detail-cart-icon:hover:not(:disabled) {
+  background: #0f925b;
+  transform: translateY(-1px);
+}
+@media (max-width: 520px) {
+  .detail-actions { grid-template-columns: 56px 1fr; }
+  .detail-cart-icon {
+    width: 52px !important;
+    min-width: 52px;
+  }
+  .secondary-detail { width: 100%; }
+}
