@@ -6,7 +6,10 @@ const state = {
   categoryId: 'all',
   popularOnly: false,
   sort: 'default',
-  cart: []
+  cart: [],
+  stats: { totalProducts: 0, totalCategories: 0, totalPopular: 0 },
+  pagination: { limit: 25, nextOffset: null, hasMore: false },
+  loadingMore: false
 };
 
 const CART_STORAGE_KEY = 'katalog-web-cart-v1';
@@ -35,6 +38,7 @@ const els = {
   loadingState: document.getElementById('loadingState'),
   emptyState: document.getElementById('emptyState'),
   productGrid: document.getElementById('productGrid'),
+  loadMoreState: document.getElementById('loadMoreState'),
   detailModal: document.getElementById('detailModal'),
   detailImageWrap: document.getElementById('detailImageWrap'),
   detailImage: document.getElementById('detailImage'),
@@ -105,8 +109,8 @@ function syncCartWithProducts() {
   const byId = new Map(state.products.map((product) => [String(product.id), product]));
   state.cart = state.cart.map((item) => {
     const product = byId.get(String(item.id));
-    return product ? { ...snapshotProduct(product), qty: item.qty } : null;
-  }).filter(Boolean);
+    return product ? { ...snapshotProduct(product), qty: item.qty } : item;
+  });
   saveCart();
 }
 
@@ -223,27 +227,18 @@ function productCategory(product) {
 }
 
 function filteredProducts() {
-  const query = state.query.trim().toLowerCase();
-  let items = [...state.products];
-  if (state.categoryId !== 'all') {
-    items = items.filter((product) => String(product.categoryId || '') === String(state.categoryId));
-  }
-  if (state.popularOnly) items = items.filter((product) => product.isPopular);
-  if (query) {
-    items = items.filter((product) => {
-      const haystack = `${product.name} ${product.description || ''}`.toLowerCase();
-      return haystack.includes(query);
-    });
-  }
-  if (state.sort === 'price-low') items.sort((a, b) => Number(a.price) - Number(b.price));
-  if (state.sort === 'price-high') items.sort((a, b) => Number(b.price) - Number(a.price));
-  if (state.sort === 'name') items.sort((a, b) => String(a.name).localeCompare(String(b.name), 'id'));
-  return items;
+  return [...state.products];
 }
 
 function setLoading(isLoading) {
   els.loadingState.classList.toggle('hidden', !isLoading);
   els.productGrid.classList.toggle('hidden', isLoading);
+  if (isLoading) els.loadMoreState.classList.add('hidden');
+}
+
+function setMoreLoading(isLoading) {
+  state.loadingMore = isLoading;
+  els.loadMoreState.classList.toggle('hidden', !isLoading);
 }
 
 function renderStoreInfo() {
@@ -259,16 +254,16 @@ function renderStoreInfo() {
     els.storeLogo.classList.add('hidden');
     els.storeLogoFallback.classList.remove('hidden');
   }
-  els.totalProducts.textContent = state.products.length.toLocaleString('id-ID');
-  els.totalCategories.textContent = state.categories.length.toLocaleString('id-ID');
-  els.totalPopular.textContent = state.products.filter((product) => product.isPopular).length.toLocaleString('id-ID');
+  els.totalProducts.textContent = Number(state.stats.totalProducts || state.products.length).toLocaleString('id-ID');
+  els.totalCategories.textContent = Number(state.stats.totalCategories || state.categories.length).toLocaleString('id-ID');
+  els.totalPopular.textContent = Number(state.stats.totalPopular || state.products.filter((product) => product.isPopular).length).toLocaleString('id-ID');
 }
 
 function renderCategories() {
-  const allTotal = state.products.length;
+  const allTotal = Number(state.stats.totalProducts || state.products.length);
   const chips = [
     `<button class="category-chip ${state.categoryId === 'all' && !state.popularOnly ? 'active' : ''}" type="button" data-category="all"><strong>Semua Produk</strong><span>${allTotal} item</span></button>`,
-    `<button class="category-chip ${state.popularOnly ? 'active' : ''}" type="button" data-popular="1"><strong>Produk Populer</strong><span>${state.products.filter((p) => p.isPopular).length} item</span></button>`
+    `<button class="category-chip ${state.popularOnly ? 'active' : ''}" type="button" data-popular="1"><strong>Produk Populer</strong><span>${Number(state.stats.totalPopular || state.products.filter((p) => p.isPopular).length)} item</span></button>`
   ];
   state.categories.forEach((category) => {
     chips.push(`<button class="category-chip ${String(state.categoryId) === String(category.id) && !state.popularOnly ? 'active' : ''}" type="button" data-category="${category.id}"><strong>${escapeHtml(category.name)}</strong><span>${category.total || 0} item</span></button>`);
@@ -280,16 +275,18 @@ function renderCategories() {
       state.popularOnly = false;
       els.popularOnly.checked = false;
       els.categorySelect.value = state.categoryId;
-      renderAll();
-      scrollToProducts();
+      resetAndLoadProducts({ scroll: true });
     });
   });
   const popularButton = els.categoryChips.querySelector('[data-popular]');
   if (popularButton) popularButton.addEventListener('click', () => {
     state.popularOnly = true;
     els.popularOnly.checked = true;
-    renderAll();
-    scrollToProducts();
+    state.query = '';
+    state.categoryId = 'all';
+    els.searchInput.value = '';
+    els.categorySelect.value = 'all';
+    resetAndLoadProducts({ scroll: true });
   });
 
   els.categorySelect.innerHTML = '<option value="all">Semua kategori</option>' + state.categories.map((category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join('');
@@ -298,7 +295,9 @@ function renderCategories() {
 
 function renderProducts() {
   const items = filteredProducts();
-  els.resultCount.textContent = `${items.length.toLocaleString('id-ID')} produk`;
+  els.resultCount.textContent = state.pagination.hasMore
+    ? `${items.length.toLocaleString('id-ID')}+ produk`
+    : `${items.length.toLocaleString('id-ID')} produk`;
   const activeCategory = state.categoryId === 'all' ? null : state.categories.find((category) => String(category.id) === String(state.categoryId));
   if (state.query) {
     els.activeFilterLabel.textContent = 'Hasil pencarian';
@@ -398,51 +397,109 @@ function scrollToProducts() {
   document.querySelector('.products-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-async function loadStore() {
-  setLoading(true);
+function storeQueryUrl(offset = 0) {
+  const params = new URLSearchParams();
+  params.set('limit', String(state.pagination.limit || 25));
+  params.set('offset', String(offset));
+  if (state.query.trim()) params.set('q', state.query.trim());
+  if (state.categoryId !== 'all') params.set('categoryId', state.categoryId);
+  if (state.popularOnly) params.set('popular', '1');
+  if (state.sort !== 'default') params.set('sort', state.sort);
+  return `/api/store?${params.toString()}`;
+}
+
+function applyStorePayload(data, { append = false } = {}) {
+  state.store = data.store;
+  state.categories = Array.isArray(data.categories) ? data.categories.filter((category) => Number(category.total || 0) > 0) : [];
+  state.stats = data.stats || {
+    totalProducts: state.products.length,
+    totalCategories: state.categories.length,
+    totalPopular: state.products.filter((product) => product.isPopular).length
+  };
+  const incoming = Array.isArray(data.products) ? data.products : [];
+  state.products = append ? [...state.products, ...incoming] : incoming;
+  state.pagination = {
+    limit: Number(data.pagination?.limit || 25),
+    nextOffset: data.pagination?.nextOffset ?? null,
+    hasMore: Boolean(data.pagination?.hasMore)
+  };
+  syncCartWithProducts();
+  renderAll();
+  renderCart();
+}
+
+async function loadStore({ append = false } = {}) {
+  if (append) {
+    if (state.loadingMore || !state.pagination.hasMore || state.pagination.nextOffset === null) return;
+    setMoreLoading(true);
+  } else {
+    state.pagination.nextOffset = null;
+    state.pagination.hasMore = false;
+    setLoading(true);
+  }
+
   try {
-    const response = await fetch('/api/store', { headers: { Accept: 'application/json' } });
+    const offset = append ? state.pagination.nextOffset : 0;
+    const response = await fetch(storeQueryUrl(offset), { headers: { Accept: 'application/json' } });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data?.ok) throw new Error(data?.message || 'Katalog belum dapat dimuat.');
-    state.store = data.store;
-    state.products = Array.isArray(data.products) ? data.products : [];
-    state.categories = Array.isArray(data.categories) ? data.categories.filter((category) => Number(category.total || 0) > 0) : [];
-    syncCartWithProducts();
-    renderAll();
-    renderCart();
+    applyStorePayload(data, { append });
   } catch (error) {
-    els.productGrid.innerHTML = '';
-    els.emptyState.classList.remove('hidden');
-    els.emptyState.querySelector('strong').textContent = 'Katalog belum tersedia';
-    els.emptyState.querySelector('p').textContent = error.message || 'Coba muat ulang halaman beberapa saat lagi.';
+    if (!append) {
+      els.productGrid.innerHTML = '';
+      els.emptyState.classList.remove('hidden');
+      els.emptyState.querySelector('strong').textContent = 'Katalog belum tersedia';
+      els.emptyState.querySelector('p').textContent = error.message || 'Coba muat ulang halaman beberapa saat lagi.';
+    }
   } finally {
-    setLoading(false);
+    if (append) setMoreLoading(false);
+    else setLoading(false);
   }
 }
+
+function resetAndLoadProducts({ scroll = false } = {}) {
+  state.products = [];
+  renderProducts();
+  loadStore().then(() => { if (scroll) scrollToProducts(); });
+}
+
 
 els.searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
   state.query = els.searchInput.value.trim();
-  renderAll();
-  scrollToProducts();
+  state.popularOnly = false;
+  els.popularOnly.checked = false;
+  resetAndLoadProducts({ scroll: true });
 });
+let searchTimer = null;
 els.searchInput.addEventListener('input', () => {
-  state.query = els.searchInput.value.trim();
-  renderAll();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.query = els.searchInput.value.trim();
+    state.popularOnly = false;
+    els.popularOnly.checked = false;
+    resetAndLoadProducts();
+  }, 320);
 });
 els.sortSelect.addEventListener('change', () => {
   state.sort = els.sortSelect.value;
-  renderProducts();
+  resetAndLoadProducts();
 });
 els.categorySelect.addEventListener('change', () => {
   state.categoryId = els.categorySelect.value;
   state.popularOnly = false;
   els.popularOnly.checked = false;
-  renderAll();
+  resetAndLoadProducts({ scroll: true });
 });
 els.popularOnly.addEventListener('change', () => {
   state.popularOnly = els.popularOnly.checked;
-  renderAll();
+  if (state.popularOnly) {
+    state.query = '';
+    state.categoryId = 'all';
+    els.searchInput.value = '';
+    els.categorySelect.value = 'all';
+  }
+  resetAndLoadProducts({ scroll: true });
 });
 els.resetFilter.addEventListener('click', () => {
   state.query = '';
@@ -450,15 +507,19 @@ els.resetFilter.addEventListener('click', () => {
   state.popularOnly = false;
   state.sort = 'default';
   els.searchInput.value = '';
+  els.categorySelect.value = 'all';
   els.sortSelect.value = 'default';
   els.popularOnly.checked = false;
-  renderAll();
+  resetAndLoadProducts({ scroll: true });
 });
 els.openPopular.addEventListener('click', () => {
   state.popularOnly = true;
+  state.query = '';
+  state.categoryId = 'all';
+  els.searchInput.value = '';
+  els.categorySelect.value = 'all';
   els.popularOnly.checked = true;
-  renderAll();
-  scrollToProducts();
+  resetAndLoadProducts({ scroll: true });
 });
 els.heroShopButton.addEventListener('click', scrollToProducts);
 els.heroCategoryButton.addEventListener('click', () => els.categorySection.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -477,14 +538,25 @@ document.querySelectorAll('[data-mobile-action]').forEach((button) => {
     if (action === 'category') els.categorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (action === 'popular') {
       state.popularOnly = true;
+      state.query = '';
+      state.categoryId = 'all';
+      els.searchInput.value = '';
+      els.categorySelect.value = 'all';
       els.popularOnly.checked = true;
-      renderAll();
-      scrollToProducts();
+      resetAndLoadProducts({ scroll: true });
     }
     if (action === 'search') els.searchInput.focus();
   });
 });
 
+
+
+window.addEventListener('scroll', () => {
+  if (!state.pagination.hasMore || state.loadingMore || els.loadingState && !els.loadingState.classList.contains('hidden')) return;
+  const marker = els.loadMoreState.getBoundingClientRect();
+  const nearBottom = marker.top < window.innerHeight + 260;
+  if (nearBottom) loadStore({ append: true });
+}, { passive: true });
 
 els.cartFloat.addEventListener('click', () => setCartOpen(els.cartPanel.classList.contains('hidden')));
 els.cartClose.addEventListener('click', () => setCartOpen(false));

@@ -6,16 +6,42 @@ import {
   getTelegramSettings,
   supabaseRequest
 } from '../lib/telegram-settings.js';
-import { MAX_PRODUCTS, formatRupiah, getPopularProducts, getProducts, whatsappOrderUrl } from '../lib/catalog-products.js';
-import { getCategories } from '../lib/catalog-categories.js';
+import { formatRupiah, getPopularProducts, getProducts, whatsappOrderUrl } from '../lib/catalog-products.js';
+import { getCategories, getCategoryProductCountRows } from '../lib/catalog-categories.js';
 import { getStoreLogoUrl, storeLogoExists } from '../lib/product-images.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '8kb' } }
 };
 
+const PAGE_SIZE = 25;
+
 function normalizeBotSlug(value) {
   return String(value || '').trim().replace(/^@/, '').slice(0, 80);
+}
+
+function clampPageSize(value) {
+  const limit = Number(value);
+  return Number.isSafeInteger(limit) && limit > 0 ? Math.min(limit, PAGE_SIZE) : PAGE_SIZE;
+}
+
+function safeOffset(value) {
+  const offset = Number(value);
+  return Number.isSafeInteger(offset) && offset >= 0 ? offset : 0;
+}
+
+function cleanQuery(value) {
+  return String(value || '').trim().slice(0, 70);
+}
+
+function cleanSort(value) {
+  return ['default', 'price-low', 'price-high', 'name'].includes(value) ? value : 'default';
+}
+
+function cleanCategoryId(value) {
+  if (!value || value === 'all') return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 async function getSettingsByUsername(username) {
@@ -33,7 +59,6 @@ async function resolveStoreSettings(req) {
   if (/^\d{5,15}$/.test(bot)) return getTelegramSettings(bot);
   return getSettingsByUsername(bot);
 }
-
 
 function storefrontDisplayName(settings) {
   const rawName = String(settings?.bot_first_name || '').trim();
@@ -75,16 +100,31 @@ export default async function store(req, res) {
     const settings = await resolveStoreSettings(req);
     if (!settings) return sendJson(res, 404, { ok: false, message: 'Katalog belum tersedia.' });
 
-    const [products, popularProducts, categories, logoExists] = await Promise.all([
-      getProducts(settings.bot_id, { activeOnly: true, limit: MAX_PRODUCTS }),
-      getPopularProducts(settings.bot_id, { limit: 24 }),
+    const url = new URL(req.url || '', `https://${req.headers.host || 'localhost'}`);
+    const limit = clampPageSize(url.searchParams.get('limit'));
+    const offset = safeOffset(url.searchParams.get('offset'));
+    const query = cleanQuery(url.searchParams.get('q'));
+    const categoryId = cleanCategoryId(url.searchParams.get('categoryId'));
+    const sortMode = cleanSort(url.searchParams.get('sort'));
+    const popularOnly = url.searchParams.get('popular') === '1' || url.searchParams.get('popularOnly') === 'true';
+
+    const productPromise = popularOnly
+      ? getPopularProducts(settings.bot_id, { limit: limit + 1, offset })
+      : getProducts(settings.bot_id, { activeOnly: true, limit: limit + 1, offset, query, categoryId, sortMode });
+
+    const [pageProductsRaw, popularProducts, categories, logoExists, categoryRows] = await Promise.all([
+      productPromise,
+      getPopularProducts(settings.bot_id, { limit: 100 }),
       getCategories(settings.bot_id),
-      storeLogoExists(settings.bot_id)
+      storeLogoExists(settings.bot_id),
+      getCategoryProductCountRows(settings.bot_id)
     ]);
 
-    const counts = categoryCounts(products);
+    const hasMore = pageProductsRaw.length > limit;
+    const pageProducts = pageProductsRaw.slice(0, limit);
+    const counts = categoryCounts(categoryRows);
     const popularIds = new Set(popularProducts.map((product) => Number(product.id)));
-    const publicProducts = products.map((product) => ({
+    const publicProducts = pageProducts.map((product) => ({
       ...publicProduct(product, settings.whatsapp_number),
       isPopular: Boolean(product.isPopular || popularIds.has(Number(product.id)))
     }));
@@ -102,8 +142,20 @@ export default async function store(req, res) {
         name: category.name,
         total: counts.get(category.id) || 0
       })),
+      stats: {
+        totalProducts: categoryRows.length,
+        totalCategories: categories.length,
+        totalPopular: popularProducts.length
+      },
       products: publicProducts,
-      popularProductIds: [...popularIds]
+      popularProductIds: [...popularIds],
+      pagination: {
+        limit,
+        offset,
+        count: publicProducts.length,
+        hasMore,
+        nextOffset: hasMore ? offset + limit : null
+      }
     });
   } catch (error) {
     const status = error instanceof SettingsConfigurationError || error instanceof SettingsStorageError ? 503 : 500;

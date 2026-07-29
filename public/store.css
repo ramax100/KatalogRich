@@ -934,3 +934,28 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; letter-spacing: -.5px; }
   .modal-close { width: 36px; height: 36px; }
   #cartClose { width: 33px; height: 33px; }
 }
+
+/* Infinite scroll produk */
+.load-more-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  margin: 18px 0 4px;
+  padding: 13px;
+  color: #7b5363;
+  background: #fff7fa;
+  border: 1px solid #ffe0e8;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 850;
+}
+.load-more-state span {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(227, 27, 75, .18);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
