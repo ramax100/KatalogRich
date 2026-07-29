@@ -55,7 +55,7 @@ const apiHandlers = new Map([
 ]);
 
 function setStaticSecurityHeaders(res) {
-  res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data: https://api.telegram.org https://*.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; img-src 'self' data: https://api.telegram.org https://*.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
