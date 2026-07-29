@@ -5,8 +5,11 @@ const state = {
   query: '',
   categoryId: 'all',
   popularOnly: false,
-  sort: 'default'
+  sort: 'default',
+  cart: []
 };
+
+const CART_STORAGE_KEY = 'katalog-web-cart-v1';
 
 const els = {
   storeName: document.getElementById('storeName'),
@@ -40,8 +43,160 @@ const els = {
   detailTitle: document.getElementById('detailTitle'),
   detailPrice: document.getElementById('detailPrice'),
   detailDescription: document.getElementById('detailDescription'),
-  detailOrder: document.getElementById('detailOrder')
+  detailOrder: document.getElementById('detailOrder'),
+  cartWidget: document.getElementById('cartWidget'),
+  cartFloat: document.getElementById('cartFloat'),
+  cartPanel: document.getElementById('cartPanel'),
+  cartClose: document.getElementById('cartClose'),
+  cartItems: document.getElementById('cartItems'),
+  cartEmpty: document.getElementById('cartEmpty'),
+  cartCount: document.getElementById('cartCount'),
+  cartMiniTotal: document.getElementById('cartMiniTotal'),
+  cartTotal: document.getElementById('cartTotal'),
+  cartPanelSubtitle: document.getElementById('cartPanelSubtitle'),
+  cartClear: document.getElementById('cartClear'),
+  cartCheckout: document.getElementById('cartCheckout')
 };
+
+
+function loadCart() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+    return Array.isArray(parsed)
+      ? parsed.map((item) => ({
+        id: String(item.id),
+        name: String(item.name || 'Produk'),
+        price: Number(item.price || 0),
+        priceFormatted: item.priceFormatted || formatPrice(item.price || 0),
+        imageUrl: item.imageUrl || '',
+        qty: Math.max(1, Math.min(99, Number(item.qty) || 1))
+      })).filter((item) => item.id)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCart() {
+  try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.cart)); } catch { /* ignore private mode errors */ }
+}
+
+function cartTotals() {
+  return state.cart.reduce((total, item) => {
+    total.qty += Number(item.qty || 0);
+    total.amount += Number(item.price || 0) * Number(item.qty || 0);
+    return total;
+  }, { qty: 0, amount: 0 });
+}
+
+function snapshotProduct(product) {
+  return {
+    id: String(product.id),
+    name: product.name,
+    price: Number(product.price || 0),
+    priceFormatted: product.priceFormatted || formatPrice(product.price),
+    imageUrl: product.imageUrl || '',
+    qty: 1
+  };
+}
+
+function syncCartWithProducts() {
+  if (!state.products.length || !state.cart.length) return;
+  const byId = new Map(state.products.map((product) => [String(product.id), product]));
+  state.cart = state.cart.map((item) => {
+    const product = byId.get(String(item.id));
+    return product ? { ...snapshotProduct(product), qty: item.qty } : null;
+  }).filter(Boolean);
+  saveCart();
+}
+
+function setCartOpen(open) {
+  els.cartPanel.classList.toggle('hidden', !open);
+  els.cartFloat.setAttribute('aria-expanded', String(open));
+  els.cartWidget.classList.toggle('is-open', open);
+}
+
+function renderCart() {
+  const { qty, amount } = cartTotals();
+  els.cartCount.textContent = String(qty);
+  els.cartMiniTotal.textContent = formatPrice(amount);
+  els.cartTotal.textContent = formatPrice(amount);
+  els.cartPanelSubtitle.textContent = qty ? `${qty} item di keranjang` : 'Belanja beberapa produk sekaligus';
+  els.cartEmpty.classList.toggle('hidden', state.cart.length > 0);
+  els.cartItems.classList.toggle('hidden', state.cart.length === 0);
+  els.cartClear.disabled = state.cart.length === 0;
+  els.cartCheckout.disabled = state.cart.length === 0 || !/^\d{8,15}$/.test(String(state.store?.whatsappNumber || ''));
+  els.cartCheckout.textContent = state.cart.length && !state.store?.whatsappNumber ? 'WhatsApp belum aktif' : 'Checkout WhatsApp';
+
+  els.cartItems.innerHTML = state.cart.map((item) => `
+    <article class="cart-item">
+      <div class="cart-item-media">${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)}" loading="lazy" />` : `<span>${escapeHtml(productInitial(item.name))}</span>`}</div>
+      <div class="cart-item-body">
+        <strong>${escapeHtml(item.name)}</strong>
+        <small>${escapeHtml(item.priceFormatted || formatPrice(item.price))}</small>
+        <div class="cart-qty" aria-label="Jumlah ${escapeHtml(item.name)}">
+          <button type="button" data-cart-dec="${escapeHtml(item.id)}">−</button>
+          <span>${Number(item.qty || 1)}</span>
+          <button type="button" data-cart-inc="${escapeHtml(item.id)}">+</button>
+        </div>
+      </div>
+      <div class="cart-item-side">
+        <strong>${escapeHtml(formatPrice(Number(item.price || 0) * Number(item.qty || 1)))}</strong>
+        <button type="button" data-cart-remove="${escapeHtml(item.id)}" aria-label="Hapus ${escapeHtml(item.name)}">Hapus</button>
+      </div>
+    </article>`).join('');
+}
+
+function addToCart(productId, { open = true } = {}) {
+  const product = state.products.find((item) => String(item.id) === String(productId));
+  if (!product) return;
+  const existing = state.cart.find((item) => String(item.id) === String(product.id));
+  if (existing) existing.qty = Math.min(99, Number(existing.qty || 1) + 1);
+  else state.cart.push(snapshotProduct(product));
+  saveCart();
+  renderCart();
+  els.cartPanelSubtitle.textContent = `${product.name} ditambahkan ke keranjang`;
+  els.cartFloat.classList.remove('cart-pulse');
+  void els.cartFloat.offsetWidth;
+  els.cartFloat.classList.add('cart-pulse');
+  if (open) setCartOpen(true);
+}
+
+function updateCartQuantity(productId, nextQty) {
+  const item = state.cart.find((entry) => String(entry.id) === String(productId));
+  if (!item) return;
+  item.qty = Math.max(1, Math.min(99, Number(nextQty) || 1));
+  saveCart();
+  renderCart();
+}
+
+function removeCartItem(productId) {
+  state.cart = state.cart.filter((entry) => String(entry.id) !== String(productId));
+  saveCart();
+  renderCart();
+}
+
+function checkoutCart() {
+  if (!state.cart.length) return;
+  const whatsappNumber = String(state.store?.whatsappNumber || '');
+  if (!/^\d{8,15}$/.test(whatsappNumber)) return;
+  const { amount } = cartTotals();
+  const lines = [
+    'Halo, saya ingin memesan produk berikut:',
+    '',
+    ...state.cart.flatMap((item, index) => [
+      `${index + 1}. ${item.name}`,
+      `   Harga: ${item.priceFormatted || formatPrice(item.price)}`,
+      `   Jumlah: ${item.qty}`,
+      `   Subtotal: ${formatPrice(Number(item.price || 0) * Number(item.qty || 1))}`
+    ]),
+    '',
+    `Total: ${formatPrice(amount)}`,
+    '',
+    'Mohon informasi ketersediaan dan cara pemesanannya. Terima kasih.'
+  ];
+  window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener');
+}
 
 function formatPrice(value) {
   return new Intl.NumberFormat('id-ID', {
@@ -165,6 +320,9 @@ function renderProducts() {
   els.productGrid.querySelectorAll('[data-detail]').forEach((button) => {
     button.addEventListener('click', () => openDetail(button.dataset.detail));
   });
+  els.productGrid.querySelectorAll('[data-cart]').forEach((button) => {
+    button.addEventListener('click', () => addToCart(button.dataset.cart));
+  });
 }
 
 function productCard(product) {
@@ -172,8 +330,8 @@ function productCard(product) {
     ? `<img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.name)}" loading="lazy" />`
     : `<div class="image-fallback">${escapeHtml(productInitial(product.name))}</div>`;
   const popular = product.isPopular ? '<span class="product-badge">Populer</span>' : '';
-  const order = product.orderUrl
-    ? `<a class="card-order" href="${escapeHtml(product.orderUrl)}" target="_blank" rel="noreferrer" title="Pesan via WhatsApp">🛒 Pesan</a>`
+  const order = state.store?.whatsappNumber
+    ? `<button class="card-order" type="button" data-cart="${product.id}" title="Tambah ke keranjang">🛒 Pesan</button>`
     : '<span class="card-order disabled" title="Nomor WhatsApp belum tersedia">🛒 Pesan</span>';
   return `
     <article class="product-card">
@@ -206,12 +364,14 @@ function openDetail(productId) {
     els.detailImageWrap.classList.add('hidden');
     els.detailImage.removeAttribute('src');
   }
-  if (product.orderUrl) {
+  if (state.store?.whatsappNumber) {
     els.detailOrder.classList.remove('hidden');
-    els.detailOrder.href = product.orderUrl;
+    els.detailOrder.disabled = false;
+    els.detailOrder.dataset.cart = String(product.id);
   } else {
     els.detailOrder.classList.add('hidden');
-    els.detailOrder.removeAttribute('href');
+    els.detailOrder.disabled = true;
+    delete els.detailOrder.dataset.cart;
   }
   els.detailModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -241,7 +401,9 @@ async function loadStore() {
     state.store = data.store;
     state.products = Array.isArray(data.products) ? data.products : [];
     state.categories = Array.isArray(data.categories) ? data.categories.filter((category) => Number(category.total || 0) > 0) : [];
+    syncCartWithProducts();
     renderAll();
+    renderCart();
   } catch (error) {
     els.productGrid.innerHTML = '';
     els.emptyState.classList.remove('hidden');
@@ -316,5 +478,42 @@ document.querySelectorAll('[data-mobile-action]').forEach((button) => {
     if (action === 'search') els.searchInput.focus();
   });
 });
+
+
+els.cartFloat.addEventListener('click', () => setCartOpen(els.cartPanel.classList.contains('hidden')));
+els.cartClose.addEventListener('click', () => setCartOpen(false));
+els.cartClear.addEventListener('click', () => {
+  if (!state.cart.length) return;
+  if (!window.confirm('Kosongkan semua produk dari keranjang?')) return;
+  state.cart = [];
+  saveCart();
+  renderCart();
+});
+els.cartCheckout.addEventListener('click', checkoutCart);
+els.cartItems.addEventListener('click', (event) => {
+  const inc = event.target.closest('[data-cart-inc]');
+  const dec = event.target.closest('[data-cart-dec]');
+  const remove = event.target.closest('[data-cart-remove]');
+  if (inc) {
+    const item = state.cart.find((entry) => String(entry.id) === String(inc.dataset.cartInc));
+    if (item) updateCartQuantity(item.id, Number(item.qty || 1) + 1);
+    return;
+  }
+  if (dec) {
+    const item = state.cart.find((entry) => String(entry.id) === String(dec.dataset.cartDec));
+    if (item) updateCartQuantity(item.id, Number(item.qty || 1) - 1);
+    return;
+  }
+  if (remove) removeCartItem(remove.dataset.cartRemove);
+});
+els.detailOrder.addEventListener('click', () => {
+  const productId = els.detailOrder.dataset.cart;
+  if (!productId) return;
+  addToCart(productId);
+  closeDetail();
+});
+
+state.cart = loadCart();
+renderCart();
 
 loadStore();

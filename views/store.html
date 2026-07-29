@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#e31b4b" />
     <title>Katalog Web — Belanja Produk</title>
     <meta name="description" content="Katalog produk web dengan pencarian, kategori, produk populer, dan pemesanan WhatsApp." />
-    <link rel="stylesheet" href="/store.css?v=20260729-4" />
+    <link rel="stylesheet" href="/store.css?v=20260729-cart2" />
   </head>
   <body>
     <div class="app-shell">
@@ -105,6 +105,29 @@
       </nav>
     </div>
 
+    <div id="cartWidget" class="cart-widget" aria-live="polite">
+      <button id="cartFloat" class="cart-float" type="button" aria-expanded="false" aria-controls="cartPanel">
+        <span class="cart-float-icon">🛒</span>
+        <span><strong>Keranjang</strong><small id="cartMiniTotal">Rp0</small></span>
+        <em id="cartCount">0</em>
+      </button>
+      <section id="cartPanel" class="cart-panel hidden" aria-label="Keranjang belanja">
+        <header class="cart-panel-head">
+          <div><strong>Keranjang belanja</strong><small id="cartPanelSubtitle">Belanja beberapa produk sekaligus</small></div>
+          <button id="cartClose" type="button" aria-label="Tutup keranjang">×</button>
+        </header>
+        <div id="cartItems" class="cart-items"></div>
+        <div id="cartEmpty" class="cart-empty"><span>🛒</span><strong>Keranjang kosong</strong><p>Klik tombol Pesan pada produk untuk memasukkannya ke keranjang.</p></div>
+        <footer class="cart-footer">
+          <div class="cart-total-row"><span>Total</span><strong id="cartTotal">Rp0</strong></div>
+          <div class="cart-footer-actions">
+            <button id="cartClear" class="cart-clear" type="button">Kosongkan</button>
+            <button id="cartCheckout" class="cart-checkout" type="button">Checkout WhatsApp</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+
     <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
       <div class="modal-backdrop" data-close-detail></div>
       <article class="detail-sheet">
@@ -116,13 +139,13 @@
           <strong id="detailPrice" class="detail-price">Rp0</strong>
           <p id="detailDescription" class="detail-description">Deskripsi produk.</p>
           <div class="detail-actions">
-            <a id="detailOrder" class="order-button" target="_blank" rel="noreferrer">🛒 Pesan sekarang</a>
+            <button id="detailOrder" class="order-button" type="button">🛒 Tambah ke keranjang</button>
             <button id="detailClose" class="secondary-detail" type="button" data-close-detail>Lanjut belanja</button>
           </div>
         </div>
       </article>
     </div>
 
-    <script src="/store.js?v=20260729-3"></script>
+    <script src="/store.js?v=20260729-cart2"></script>
   </body>
 </html>
