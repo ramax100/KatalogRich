@@ -1,152 +1,297 @@
-# Katalog Rich Store — Panel Admin Katalog Telegram
+# Katalog Rich Store — Katalog Web + Bot Telegram
 
-**Katalog Rich Store** adalah panel admin web untuk membuat **toko katalog di bot Telegram** tanpa menulis kode bot sama sekali. Cukup hubungkan token bot dari BotFather, isi produk lewat panel, dan bot Anda langsung bisa melayani customer: menampilkan katalog, kategori, pencarian, produk populer, tombol pesan via WhatsApp, sampai kirim pengumuman (broadcast) ke semua customer — lengkap dengan login admin dan dukungan banyak bot.
+**Katalog Rich Store** adalah aplikasi katalog toko yang menggabungkan **website katalog publik**, **panel admin**, dan **bot Telegram** dalam satu project. Pemilik toko cukup login ke panel admin, menghubungkan token bot dari BotFather, mengisi produk, kategori, foto, produk populer, logo toko, dan nomor WhatsApp. Data yang sama otomatis dipakai oleh katalog web dan bot Telegram.
 
-💬 **Komunitas & info update:** gabung channel Telegram kami di **[t.me/ChRichStore](https://t.me/ChRichStore)**
-📄 **Lisensi:** [MIT](./LICENSE) — **gratis, bebas digunakan dan dimodifikasi** untuk keperluan pribadi maupun komersial.
+- **Katalog web publik:** halaman utama `/`
+- **Panel admin:** `/admin`
+- **Bot Telegram:** webhook otomatis dari panel admin
+- **Database & Storage:** Supabase
+- **Hosting:** Vercel
+- **Lisensi:** [MIT](./LICENSE) — bebas digunakan dan dimodifikasi untuk pribadi maupun komersial.
 
----
-
-## ✨ Fitur
-
-### Untuk pemilik toko (panel web)
-- **Login admin** — seluruh panel & API terkunci sesi login (12 jam), dengan pembatasan percobaan login.
-- **Hubungkan bot sekali klik** — tempel token BotFather, webhook Telegram terpasang otomatis.
-- **Multi bot** — kelola banyak bot dari satu panel: daftar bot, ubah token, hapus bot (katalog ikut terhapus aman).
-- **Pesan Welcome** — sapaan `/start` dengan variabel `{mention}` (nama bisa diklik ke profil), `{name}`, `{username}`, `{id}`, `{first_name}`, dll., bisa disertai **gambar atau GIF animasi** (dikirim sebelum teks) + pratinjau langsung.
-- **Katalog Produk** — tambah/edit/hapus produk (kapasitas besar hingga **5.000 produk**), foto/GIF **opsional**, kategori, produk populer, dan atur urutan dengan **seret & letakkan (drag & drop)** atau tombol naik.
-- **Pencarian & sembunyikan produk** — cari produk langsung dari panel, dan sembunyikan produk tanpa menghapusnya; produk tersembunyi hilang dari katalog Telegram dan nomor urut di bot tetap rapi berurutan.
-- **Kirim Pesan (broadcast)** — kirim info promo ke semua customer, bisa **disertai gambar atau GIF** (foto/animasi + caption).
-- **WhatsApp pemesanan** — tombol *Pesan sekarang* di bot langsung menuju chat WhatsApp toko Anda.
-- **Diagnostik** — periksa & perbaiki otomatis token, webhook, data katalog, WhatsApp, dan pesan welcome.
-
-### Untuk customer (bot Telegram)
-- `/start` sapaan welcome dengan tombol buka katalog.
-- Setiap konten dimuat dengan **animasi loading matrix 1% → 100%** (bar `█████░░░░░`) yang kemudian berubah menjadi konten — tidak ada pesan menumpuk.
-- `/katalog` daftar produk berhalaman, `/populer` produk terlaris.
-- `/kategori` daftar kategori ringkas `[1] Nama (N produk)` — buka cukup dengan **ketik angkanya saja** (mis. `2`); perintah `/kategori 2` juga tetap bisa.
-- `/cari kata` atau ketik teks apa saja untuk mencari produk.
-- Ketik **nomor produk** untuk melihat detail + foto + tombol **Pesan sekarang** (WhatsApp) dan tombol box **Kembali ke katalog**.
+> Catatan: README ini tidak berisi URL deployment pribadi, token, password, service role key, atau kredensial asli apa pun.
 
 ---
 
-## 🧱 Bahan yang Digunakan
+## ✨ Fitur Utama
 
-| Bahan | Fungsi | Biaya |
+### 1. Katalog web publik
+Katalog web tampil langsung di halaman utama domain Anda (`/`). Tampilannya dibuat bergaya marketplace/e-commerce modern.
+
+Fitur katalog web:
+- **Homepage katalog** di `/`.
+- **Nama toko dan logo header web** dapat diatur dari admin.
+- **Search produk** berdasarkan nama/deskripsi.
+- **Kategori produk** dari database yang sama dengan bot.
+- **Produk populer** mengikuti pengaturan admin.
+- **Sort produk**: rekomendasi, harga termurah, harga termahal, nama produk.
+- **Lazy load produk**: load awal **26 produk**, lalu memuat 26 produk berikutnya saat user scroll.
+- **Detail produk** dalam modal.
+- **Tombol pesan langsung** dari detail produk ke WhatsApp.
+- **Keranjang mengambang** di kanan bawah:
+  - tambah beberapa produk,
+  - ubah jumlah,
+  - hapus item,
+  - kosongkan keranjang,
+  - pesan semua item sekaligus via WhatsApp.
+- **Responsive mobile/tablet** dengan bottom navigation.
+- **Font web commerce** memakai Plus Jakarta Sans.
+
+### 2. Panel admin
+Panel admin tersedia di `/admin` dan wajib login.
+
+Fitur admin:
+- **Login admin** dengan sesi 12 jam.
+- **Hubungkan bot Telegram** sekali klik.
+- **Multi bot**: tambah bot, ubah token, hapus bot.
+- **Logo header web**: upload/ganti/hapus logo kecil di samping nama toko pada katalog web.
+  - JPG/PNG/WEBP otomatis di-crop persegi agar pas.
+  - GIF tetap didukung dan ditampilkan dengan `object-fit: cover`.
+- **Pesan welcome bot** dengan variabel personalisasi:
+  - `{mention}`, `{name}`, `{username}`, `{id}`, `{first_name}`, `{full_name}`, dll.
+- **Gambar/GIF welcome** opsional.
+- **Produk katalog**:
+  - tambah/edit/hapus produk,
+  - foto/GIF opsional,
+  - kategori,
+  - produk populer,
+  - sembunyikan/tampilkan produk,
+  - atur urutan dengan drag & drop atau tombol naik.
+- **Nomor WhatsApp pemesanan** untuk tombol pesan bot dan web.
+- **Broadcast customer** via Telegram, teks atau gambar/GIF.
+- **Diagnostik webhook** untuk memeriksa dan memperbaiki koneksi Telegram.
+
+### 3. Bot Telegram
+Bot Telegram memakai data produk/kategori yang sama dengan katalog web.
+
+Fitur bot:
+- `/start` menampilkan welcome + tombol buka katalog.
+- `/katalog` menampilkan daftar produk.
+- `/kategori` menampilkan daftar kategori.
+- `/kategori 1` atau ketik angka setelah daftar kategori untuk membuka kategori.
+- `/populer` menampilkan produk populer.
+- `/cari kata` mencari produk.
+- Ketik nomor produk untuk melihat detail produk.
+- Loading tampil dari `1% → 100%` sebelum konten akhir.
+- Detail produk dengan foto tampil rapi: foto di atas, teks dan tombol di bawah.
+- Tombol **Pesan sekarang** memakai ikon keranjang dan mengarah ke WhatsApp.
+- Tombol **Semua produk** tersedia pada halaman yang perlu kembali ke katalog utama.
+
+---
+
+## 🔄 Integrasi Data
+
+Semua fitur memakai database yang sama:
+
+```text
+Panel Admin → Supabase → Katalog Web
+                    └→ Bot Telegram
+```
+
+Jika Anda mengubah produk dari panel admin, maka perubahan ikut berpengaruh ke katalog web dan bot Telegram:
+
+- tambah produk → muncul di web dan bot,
+- edit nama/harga/deskripsi → ikut berubah,
+- upload/ganti foto → ikut berubah,
+- sembunyikan produk → hilang dari web dan bot,
+- ubah kategori → filter kategori web dan bot ikut berubah,
+- produk populer → tampil di web dan `/populer`,
+- urutan produk → memengaruhi urutan katalog web dan bot,
+- nomor WhatsApp → dipakai oleh tombol pesan web dan bot.
+
+---
+
+## 🧱 Teknologi yang Digunakan
+
+| Teknologi | Fungsi | Catatan |
 |---|---|---|
-| **Node.js 18.17+** | Bahasa utama server (ES Modules, **tanpa dependency npm** — murni API bawaan Node seperti `fetch` & `crypto`) | Gratis |
-| **Vercel** | Hosting panel web + serverless functions (`/api/*`) | Gratis (paket Hobby cukup) |
-| **Supabase** | Database Postgres (konfigurasi bot, produk, kategori, customer) + Supabase Storage (foto) | Gratis (paket Free cukup) |
-| **Telegram Bot API** | Otak bot katalog (webhook, pesan, tombol inline) | Gratis — dibuat di [@BotFather](https://t.me/BotFather) |
-| **HTML + CSS + JS vanilla** | Tampilan panel admin (tanpa framework) | — |
+| Node.js 18.17+ | Server lokal dan serverless handler | ES Modules |
+| Vercel | Hosting aplikasi dan API | Tanpa build step khusus |
+| Supabase Postgres | Database bot, produk, kategori, customer | RLS aktif |
+| Supabase Storage | Foto produk, gambar welcome, logo web | Bucket dibuat otomatis |
+| Telegram Bot API | Bot katalog Telegram | Webhook otomatis |
+| HTML/CSS/JS vanilla | Admin panel dan katalog web | Tanpa framework |
 
-Tidak ada framework, tidak ada proses build, dan tidak ada package yang perlu di-install — `package.json` tidak memiliki dependency sama sekali.
+Project ini tidak memakai dependency npm eksternal. `package.json` tidak memiliki dependency.
 
 ---
 
-## 🚀 Cara Menggunakan (Dari Awal Sampai Akhir)
+## 🚀 Cara Deploy dari Awal
 
-### 1. Siapkan database (Supabase) — ±5 menit
-1. Buat akun di [supabase.com](https://supabase.com) lalu **New project** (gratis).
-2. Buka menu **SQL Editor**, lalu jalankan file-file SQL di folder [`supabase/`](./supabase) secara berurutan:
-   - Jalankan [`supabase/schema.sql`](./supabase/schema.sql) **paling pertama**.
-   - Lalu jalankan **semua file `.sql` lainnya** di folder yang sama (urutannya bebas).
-3. Buka **Project Settings → API**, catat:
-   - `Project URL` → nanti jadi `SUPABASE_URL`
-   - `service_role` key (klik *Reveal*) → nanti jadi `SUPABASE_SERVICE_ROLE_KEY`
+### 1. Siapkan Supabase
+1. Buat project baru di [supabase.com](https://supabase.com).
+2. Buka **SQL Editor**.
+3. Jalankan file SQL di folder [`supabase/`](./supabase):
+   - Jalankan [`supabase/schema.sql`](./supabase/schema.sql) paling pertama.
+   - Lalu jalankan semua file `.sql` lain di folder `supabase/`.
+4. Buka **Project Settings → API**, lalu catat:
+   - `Project URL` untuk `SUPABASE_URL`.
+   - `service_role` key untuk `SUPABASE_SERVICE_ROLE_KEY`.
 
-> Semua tabel otomatis dikunci dengan Row Level Security — hanya server Anda (pemegang service key) yang bisa mengaksesnya.
+> Jangan gunakan `anon key` untuk server. Gunakan `service_role` hanya di Environment Variables Vercel.
 
-### 2. Deploy panel (Vercel) — ±3 menit
-1. **Fork** atau **Use this template** repo ini ke akun GitHub Anda.
-2. Di [vercel.com](https://vercel.com) pilih **Add New → Project → Import** repo tersebut → **Deploy** (tidak ada pengaturan build yang perlu diubah).
-3. Alternatif CLI: `npm i -g vercel` lalu `vercel deploy --prod` dari folder proyek.
+### 2. Deploy ke Vercel
+1. Fork atau import repo ini ke akun GitHub Anda.
+2. Di Vercel pilih **Add New → Project**.
+3. Import repo.
+4. Deploy.
 
-### 3. Isi Environment Variables — ±2 menit
-Di Vercel: **Project → Settings → Environment Variables** (pilih *Sensitive* untuk semua), isi:
+Tidak perlu mengatur build command khusus.
 
-| Variabel | Contoh / Cara membuatnya | Wajib |
+### 3. Isi Environment Variables
+Di Vercel: **Project → Settings → Environment Variables**.
+
+| Variabel | Keterangan | Wajib |
 |---|---|---|
-| `ADMIN_USERNAME` | Username login panel, mis. `admin` | ✅ |
-| `ADMIN_PASSWORD` | Password login panel yang kuat | ✅ |
-| `SESSION_SECRET` | Jalankan `openssl rand -base64 48` | ✅ |
-| `BOT_ENCRYPTION_KEY` | Jalankan `openssl rand -base64 32` (harus pas 32 byte) | ✅ |
-| `SUPABASE_URL` | `https://xxxx.supabase.co` (dari langkah 1) | ✅ |
-| `SUPABASE_SERVICE_ROLE_KEY` | `service_role` key (dari langkah 1) | ✅ |
-| `APP_URL` | URL deploy Anda, mis. `https://toko-saya.vercel.app` | Opsional* |
+| `ADMIN_USERNAME` | Username login admin | ✅ |
+| `ADMIN_PASSWORD` | Password login admin yang kuat | ✅ |
+| `SESSION_SECRET` | Secret sesi, buat dengan `openssl rand -base64 48` | ✅ |
+| `BOT_ENCRYPTION_KEY` | Kunci enkripsi token bot, buat dengan `openssl rand -base64 32` | ✅ |
+| `SUPABASE_URL` | URL project Supabase | ✅ |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key Supabase | ✅ |
+| `APP_URL` | URL domain deploy Anda, contoh `https://domain-anda.vercel.app` | Direkomendasikan |
 
-\* `APP_URL` membuat URL webhook stabil; tanpa ini URL ditebak dari domain deploy — aman untuk pemakaian biasa.
+Setelah mengubah Environment Variables, lakukan **Redeploy**.
 
-Setelah mengubah env, lakukan **Redeploy** sekali dari tab *Deployments*.
+> Jangan commit file `.env`, `.env.local`, token Telegram, Vercel token, GitHub token, password admin, atau service role key ke repository.
 
-> ⚠️ **Jangan pernah** menuliskan nilai asli variabel ini di kode/README/issue — cukup di Vercel Environment Variables.
+### 4. Login ke admin
+Buka:
 
-### 4. Login & hubungkan bot — ±2 menit
-1. Buka URL panel Anda → masuk dengan `ADMIN_USERNAME` + `ADMIN_PASSWORD`.
-2. Di Telegram, buka **@BotFather** → `/newbot` → ikuti langkahnya → salin **HTTP API token**.
-3. Di panel menu **Hubungkan Bot**, tempel token → **Verifikasi & hubungkan**.
-4. Selesai! Webhook terpasang otomatis — bot Anda sudah hidup. 🎉
+```text
+https://domain-anda.vercel.app/admin
+```
 
-### 5. Isi toko Anda
-Berurutan di panel (indikator *Setup katalog* memandu Anda):
-1. **Pesan Welcome** — tulis sapaan untuk customer baru.
-2. **Katalog Produk** — buat kategori, lalu tambah produk (nama, harga, deskripsi, foto *opsional*).
-3. **Nomor WhatsApp** — aktifkan tombol *Pesan sekarang* di bot.
-4. Coba bot Anda: kirim `/start`, `/katalog`, lalu ketik nomor produk.
-5. **Kirim Pesan** — umumkan promo ke semua customer (teks saja atau dengan gambar).
+Login dengan `ADMIN_USERNAME` dan `ADMIN_PASSWORD`.
 
-### 6. Menjalankan secara lokal (opsional, untuk pengembangan)
+### 5. Hubungkan bot Telegram
+1. Buka [@BotFather](https://t.me/BotFather).
+2. Buat bot baru atau gunakan bot yang sudah ada.
+3. Salin HTTP API token.
+4. Di panel admin buka **Hubungkan Bot**.
+5. Tempel token dan klik **Verifikasi & hubungkan**.
+
+Webhook Telegram akan dipasang otomatis ke:
+
+```text
+APP_URL/api/telegram/webhook
+```
+
+Jika `APP_URL` diganti, hubungkan ulang token bot atau jalankan diagnostik agar webhook memakai domain baru.
+
+### 6. Isi katalog
+Di panel admin:
+1. Atur **Logo header web**.
+2. Atur **Pesan Welcome**.
+3. Buat **Kategori Produk**.
+4. Tambah produk dan foto.
+5. Tandai produk populer bila perlu.
+6. Simpan nomor WhatsApp.
+7. Tes katalog web di `/`.
+8. Tes bot Telegram dengan `/start`, `/katalog`, `/kategori`, `/cari`.
+
+---
+
+## 💻 Menjalankan Lokal
+
 ```bash
 git clone https://github.com/ramax100/KatalogRich.git
 cd KatalogRich
-cp .env.example .env          # isi nilai asli Anda di .env (file ini TIDAK ikut ter-commit)
-node server.js                # buka http://localhost:3000
+cp .env.example .env
+node server.js
 ```
+
+Lalu buka:
+
+```text
+http://localhost:3000/
+http://localhost:3000/admin
+```
+
+Pastikan `.env` sudah diisi dengan nilai lokal/asli Anda. File `.env*` sudah masuk `.gitignore` dan tidak boleh di-commit.
 
 ---
 
-## 📁 Struktur Proyek
+## 📁 Struktur Project
 
-```
-├── api/                    # Serverless functions (backend API panel + webhook Telegram)
-│   ├── auth/               # Login & logout admin
-│   ├── bot/                # Hubungkan / putuskan / hapus bot
-│   ├── telegram/webhook.js # Otak bot katalog di Telegram
-│   ├── products.js         # CRUD produk (+ upload foto)
-│   ├── categories.js       # CRUD kategori
-│   ├── broadcast.js        # Kirim Pesan teks/gambar ke semua customer
-│   ├── welcome.js          # Pesan welcome
-│   ├── contact.js          # Nomor WhatsApp
-│   ├── bots.js             # Daftar multi bot
-│   ├── diagnostics.js      # Pemeriksaan & perbaikan otomatis
-│   └── session.js          # Status sesi
-├── lib/                    # Logika bersama (Supabase, enkripsi token, sesi, dsb.)
-├── public/                 # Panel admin (HTML/CSS/JS murni)
-├── supabase/               # Migrasi SQL — jalankan semua di SQL Editor
-├── server.js               # Server lokal (node server.js)
-└── vercel.json             # Konfigurasi deploy Vercel
+```text
+├── api/
+│   ├── auth/                 # Login/logout admin
+│   ├── bot/                  # Connect/disconnect/remove bot
+│   ├── telegram/webhook.js   # Handler webhook Telegram
+│   ├── store.js              # API publik katalog web
+│   ├── store-logo.js         # Upload/hapus logo header web (admin only)
+│   ├── products.js           # CRUD produk admin
+│   ├── categories.js         # CRUD kategori admin
+│   ├── broadcast.js          # Broadcast customer Telegram
+│   ├── welcome.js            # Pesan welcome + gambar welcome
+│   ├── contact.js            # Nomor WhatsApp
+│   ├── diagnostics.js        # Diagnostik webhook/data
+│   └── session.js            # Status sesi
+├── lib/
+│   ├── catalog-products.js   # Query & format produk
+│   ├── catalog-categories.js # Query & format kategori
+│   ├── customer-chats.js     # Audience broadcast + konteks menu
+│   ├── product-images.js     # Upload foto/logo ke Supabase Storage
+│   ├── telegram-settings.js  # Setting bot, Supabase, Telegram API
+│   └── vercel-api.js         # Helper sesi, auth, JSON, security header
+├── public/
+│   ├── index.html            # Admin panel
+│   ├── app.js                # Logic admin panel
+│   ├── styles.css            # Style admin panel
+│   ├── store.js              # Logic katalog web
+│   └── store.css             # Style katalog web
+├── views/
+│   └── store.html            # HTML katalog web publik di `/`
+├── supabase/                 # File SQL migrasi
+├── server.js                 # Server lokal + route utama
+└── vercel.json               # Konfigurasi Vercel + security header
 ```
 
 ---
 
 ## 🔐 Keamanan
 
-Proyek ini dirancang aman untuk dipakai publik:
-- **Token bot disimpan terenkripsi** (AES-256-GCM) — hanya bisa dibaca server dengan `BOT_ENCRYPTION_KEY` Anda, dan tidak pernah ditampilkan kembali di panel.
-- **Seluruh API panel wajib login**; sesi memakai cookie `HttpOnly + Secure + SameSite=Strict` bertanda HMAC.
-- **Webhook per bot dilindungi secret token** (`X-Telegram-Bot-Api-Secret-Token`) sehingga orang lain tidak bisa mengirim update palsu.
-- **Database terkunci RLS** — kunci publik (anon key) tidak punya akses apa pun.
-- **Login dibatasi** (maks. 5 percobaan gagal / 10 menit per IP).
-- **Tidak ada kredensial di repo** — semua rahasia hanya hidup di Environment Variables; `.env*` di-gitignore.
+Project ini dirancang aman untuk deployment publik:
 
-Jika Anda menemukan celah keamanan, laporkan lewat channel [t.me/ChRichStore](https://t.me/ChRichStore).
+- Admin panel hanya tersedia di `/admin` dan wajib login.
+- API admin wajib sesi admin.
+- Token bot disimpan terenkripsi dengan AES-256-GCM.
+- Token bot tidak pernah ditampilkan ulang di panel.
+- Webhook Telegram dilindungi `X-Telegram-Bot-Api-Secret-Token`.
+- Supabase RLS aktif; akses server memakai service role dari Environment Variables.
+- Cookie sesi memakai `HttpOnly`, `Secure`, `SameSite=Strict`, dan HMAC.
+- Login admin dibatasi percobaan gagal.
+- `.env*` masuk `.gitignore`.
+- README dan source code tidak boleh berisi kredensial asli.
+
+### Jangan commit nilai berikut:
+- `GITHUB_TOKEN`
+- `VERCEL_TOKEN`
+- Token BotFather
+- `ADMIN_PASSWORD`
+- `SESSION_SECRET`
+- `BOT_ENCRYPTION_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- File `.env` atau `.env.local`
 
 ---
 
-## 🤝 Kontribusi & Lisensi
+## ✅ Checklist setelah deploy
 
-Proyek ini **gratis dan bebas dimodifikasi** di bawah lisensi [MIT](./LICENSE): fork, ubah tampilan, tambah fitur, jadikan milik Anda — dipersilakan. Pull request dan ide fitur baru sangat diterima.
+- [ ] Supabase SQL sudah dijalankan semua.
+- [ ] Environment Variables sudah diisi.
+- [ ] `APP_URL` sesuai domain aktif.
+- [ ] Project sudah redeploy setelah env berubah.
+- [ ] Admin bisa login di `/admin`.
+- [ ] Bot berhasil dihubungkan ulang setelah domain berubah.
+- [ ] Katalog web tampil di `/`.
+- [ ] Produk tampil maksimal 26 per batch dan lazy-load saat scroll.
+- [ ] Keranjang web bisa checkout beberapa produk via WhatsApp.
+- [ ] Bot Telegram merespons `/start` dan `/katalog`.
 
-Gabung juga di channel Telegram **[t.me/ChRichStore](https://t.me/ChRichStore)** untuk update fitur, diskusi, dan bantuan pemakaian.
+---
 
-Dibuat dengan ❤️ oleh **Katalog Rich Store**.
+## 🤝 Lisensi
+
+Project ini dirilis dengan lisensi [MIT](./LICENSE). Anda bebas memakai, memodifikasi, dan mengembangkan ulang project ini untuk kebutuhan pribadi maupun komersial.
