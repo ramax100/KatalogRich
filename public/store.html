@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e31b4b" />
+    <title>Katalog Web — Belanja Produk</title>
+    <meta name="description" content="Katalog produk web dengan pencarian, kategori, produk populer, dan pemesanan WhatsApp." />
+    <link rel="stylesheet" href="/store.css?v=20260729-1" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="market-header">
+        <div class="top-strip">
+          <span>Belanja mudah dari katalog resmi</span>
+          <span id="botUsername" class="bot-username"></span>
+        </div>
+        <div class="header-main">
+          <a class="store-brand" href="/katalog-web" aria-label="Beranda katalog">
+            <span class="brand-bag" aria-hidden="true">🛍</span>
+            <span><strong id="storeName">Katalog Store</strong><small>WEB CATALOG</small></span>
+          </a>
+          <form id="searchForm" class="search-bar" role="search">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m13.3 13.3 3.1 3.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <input id="searchInput" type="search" autocomplete="off" placeholder="Cari produk impianmu..." />
+            <button type="submit">Cari</button>
+          </form>
+          <button id="openPopular" class="header-action" type="button"><span>🔥</span> Populer</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero-card">
+          <div class="hero-copy">
+            <p class="hero-kicker">Katalog Online</p>
+            <h1>Temukan produk favorit, pesan langsung via WhatsApp.</h1>
+            <p>Produk aktif dari panel admin tampil otomatis di sini. Cari, pilih kategori, lihat detail, lalu checkout lewat tombol pesan.</p>
+            <div class="hero-actions">
+              <button id="heroShopButton" type="button">Mulai belanja</button>
+              <button id="heroCategoryButton" type="button">Lihat kategori</button>
+            </div>
+          </div>
+          <div class="hero-visual" aria-hidden="true">
+            <div class="promo-card promo-main"><span>Diskon</span><strong>Produk Pilihan</strong><small>Update langsung dari admin</small></div>
+            <div class="promo-card promo-mini one">🛒</div>
+            <div class="promo-card promo-mini two">⭐</div>
+          </div>
+        </section>
+
+        <section class="stats-row" aria-label="Ringkasan katalog">
+          <article><strong id="totalProducts">0</strong><span>Produk aktif</span></article>
+          <article><strong id="totalCategories">0</strong><span>Kategori</span></article>
+          <article><strong id="totalPopular">0</strong><span>Populer</span></article>
+        </section>
+
+        <section class="section-card" id="categorySection">
+          <div class="section-head">
+            <div><p class="section-kicker">Kategori</p><h2>Belanja berdasarkan kategori</h2></div>
+            <button id="resetFilter" type="button">Semua produk</button>
+          </div>
+          <div id="categoryChips" class="category-chips" aria-label="Daftar kategori"></div>
+        </section>
+
+        <section class="content-grid">
+          <aside class="filter-panel" aria-label="Filter produk">
+            <div class="filter-title"><span>☰</span><strong>Filter</strong></div>
+            <label for="sortSelect">Urutkan</label>
+            <select id="sortSelect">
+              <option value="default">Rekomendasi</option>
+              <option value="price-low">Harga termurah</option>
+              <option value="price-high">Harga termahal</option>
+              <option value="name">Nama produk</option>
+            </select>
+            <label for="categorySelect">Kategori</label>
+            <select id="categorySelect"><option value="all">Semua kategori</option></select>
+            <label class="check-line"><input id="popularOnly" type="checkbox" /> Tampilkan populer saja</label>
+          </aside>
+
+          <section class="products-section">
+            <div class="products-head">
+              <div>
+                <p id="activeFilterLabel" class="section-kicker">Semua produk</p>
+                <h2 id="productsTitle">Produk terbaru untuk kamu</h2>
+              </div>
+              <span id="resultCount" class="result-count">0 produk</span>
+            </div>
+            <div id="loadingState" class="skeleton-grid" aria-live="polite">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div id="emptyState" class="empty-state hidden">
+              <span>🔎</span>
+              <strong>Produk tidak ditemukan</strong>
+              <p>Coba gunakan kata kunci lain atau pilih kategori berbeda.</p>
+            </div>
+            <div id="productGrid" class="product-grid"></div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="mobile-nav" aria-label="Navigasi mobile">
+        <button type="button" data-mobile-action="home"><span>🏠</span>Home</button>
+        <button type="button" data-mobile-action="category"><span>🧩</span>Kategori</button>
+        <button type="button" data-mobile-action="popular"><span>🔥</span>Populer</button>
+        <button type="button" data-mobile-action="search"><span>🔎</span>Cari</button>
+      </nav>
+    </div>
+
+    <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="modal-backdrop" data-close-detail></div>
+      <article class="detail-sheet">
+        <button class="modal-close" type="button" data-close-detail aria-label="Tutup detail">×</button>
+        <div id="detailImageWrap" class="detail-image-wrap"><img id="detailImage" alt="Foto produk" /></div>
+        <div class="detail-body">
+          <span id="detailBadge" class="detail-badge">Produk</span>
+          <h2 id="detailTitle">Nama produk</h2>
+          <strong id="detailPrice" class="detail-price">Rp0</strong>
+          <p id="detailDescription" class="detail-description">Deskripsi produk.</p>
+          <div class="detail-actions">
+            <a id="detailOrder" class="order-button" target="_blank" rel="noreferrer">🛒 Pesan sekarang</a>
+            <button id="detailClose" class="secondary-detail" type="button" data-close-detail>Lanjut belanja</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <script src="/store.js?v=20260729-1"></script>
+  </body>
+</html>

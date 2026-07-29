@@ -16,6 +16,7 @@ import broadcast from './api/broadcast.js';
 import bots from './api/bots.js';
 import authLogin from './api/auth/login.js';
 import authLogout from './api/auth/logout.js';
+import store from './api/store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
@@ -46,7 +47,8 @@ const apiHandlers = new Map([
   ['/api/broadcast', broadcast],
   ['/api/bots', bots],
   ['/api/auth/login', authLogin],
-  ['/api/auth/logout', authLogout]
+  ['/api/auth/logout', authLogout],
+  ['/api/store', store]
 ]);
 
 function setStaticSecurityHeaders(res) {
@@ -121,7 +123,13 @@ async function serveStatic(req, res, pathname) {
     return sendJson(res, 405, { ok: false, message: 'Metode tidak didukung.' });
   }
 
-  const requested = pathname === '/' ? '/index.html' : pathname;
+  const routeAliases = new Map([
+    ['/katalog-web', '/store.html'],
+    ['/katalog', '/store.html'],
+    ['/store', '/store.html'],
+    ['/toko', '/store.html']
+  ]);
+  const requested = pathname === '/' ? '/index.html' : (routeAliases.get(pathname) || pathname);
   const cleanPath = path.normalize(requested).replace(/^[/\\]+/, '');
   const filePath = path.join(publicDir, cleanPath);
   if (!filePath.startsWith(publicDir + path.sep) && filePath !== path.join(publicDir, 'index.html')) {
