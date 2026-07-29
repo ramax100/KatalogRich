@@ -13,7 +13,6 @@ const CART_STORAGE_KEY = 'katalog-web-cart-v1';
 
 const els = {
   storeName: document.getElementById('storeName'),
-  botUsername: document.getElementById('botUsername'),
   storeLogo: document.getElementById('storeLogo'),
   storeLogoFallback: document.getElementById('storeLogoFallback'),
   searchForm: document.getElementById('searchForm'),
@@ -251,7 +250,6 @@ function renderStoreInfo() {
   const name = state.store?.name || 'Rich Store';
   document.title = `${name} — Katalog Web`;
   els.storeName.textContent = name;
-  els.botUsername.textContent = state.store?.username ? `@${state.store.username}` : '';
   if (state.store?.logoUrl) {
     els.storeLogo.src = state.store.logoUrl;
     els.storeLogo.classList.remove('hidden');
