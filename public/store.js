@@ -127,7 +127,7 @@ function renderCart() {
   els.cartItems.classList.toggle('hidden', state.cart.length === 0);
   els.cartClear.disabled = state.cart.length === 0;
   els.cartCheckout.disabled = state.cart.length === 0 || !/^\d{8,15}$/.test(String(state.store?.whatsappNumber || ''));
-  els.cartCheckout.textContent = state.cart.length && !state.store?.whatsappNumber ? 'WhatsApp belum aktif' : 'Checkout WhatsApp';
+  els.cartCheckout.textContent = state.cart.length && !state.store?.whatsappNumber ? 'WhatsApp belum aktif' : 'Pesan sekarang';
 
   els.cartItems.innerHTML = state.cart.map((item) => `
     <article class="cart-item">
