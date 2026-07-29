@@ -540,7 +540,7 @@
     } else {
       storeLogoPreview.classList.remove('marked-removal');
       clearStoreLogoButton.textContent = '×';
-      storeLogoLabel.textContent = 'Pilih logo toko';
+      storeLogoLabel.textContent = 'Pilih logo header web';
       storeLogoPreviewImg.removeAttribute('src');
     }
   }
@@ -572,7 +572,7 @@
     try {
       const { response, data } = await request('/api/store-logo', { method: 'GET' });
       if (!response.ok || !data.ok) {
-        setStoreLogoState(false, data.message || 'Logo toko belum dapat dimuat.');
+        setStoreLogoState(false, data.message || 'Logo header web belum dapat dimuat.');
         return;
       }
       storeLogoData = '';
@@ -581,10 +581,10 @@
       storeLogoFileName = '';
       storeLogoImage.value = '';
       renderStoreLogoAttachment();
-      setStoreLogoState(true, data.logoUrl ? 'Logo toko web aktif.' : 'Belum ada logo toko. Pilih gambar lalu simpan.');
+      setStoreLogoState(true, data.logoUrl ? 'Logo header web aktif.' : 'Belum ada logo header web. Pilih gambar lalu simpan.');
       if (data.logoUrl) storeLogoState.classList.add('success');
     } catch {
-      setStoreLogoState(false, 'Logo toko belum dapat dimuat.');
+      setStoreLogoState(false, 'Logo header web belum dapat dimuat.');
     }
   }
 
@@ -1410,7 +1410,7 @@
       storeLogoFileName = file.name;
       storeLogoRemoved = false;
       renderStoreLogoAttachment();
-      storeLogoState.textContent = 'Logo baru siap disimpan.';
+      storeLogoState.textContent = 'Logo header baru siap disimpan.';
     });
     reader.addEventListener('error', () => {
       storeLogoImage.value = '';
@@ -1428,7 +1428,7 @@
       storeLogoRemoved = false;
     } else if (storeLogoUrlSaved) {
       storeLogoRemoved = true;
-      storeLogoState.textContent = 'Logo akan dihapus saat disimpan — klik ↺ untuk batal.';
+      storeLogoState.textContent = 'Logo header akan dihapus saat disimpan — klik ↺ untuk batal.';
     }
     renderStoreLogoAttachment();
   });
@@ -1436,7 +1436,7 @@
   storeLogoForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!storeLogoData && !storeLogoRemoved) {
-      storeLogoState.textContent = storeLogoUrlSaved ? 'Pilih logo baru atau tekan × untuk menghapus logo.' : 'Pilih gambar logo terlebih dahulu.';
+      storeLogoState.textContent = storeLogoUrlSaved ? 'Pilih logo header baru atau tekan × untuk menghapus logo.' : 'Pilih gambar logo header terlebih dahulu.';
       return;
     }
     setStoreLogoSaving(true);
@@ -1446,7 +1446,7 @@
         body: JSON.stringify({ imageData: storeLogoData, removeLogo: storeLogoRemoved })
       });
       if (!response.ok || !data.ok) {
-        storeLogoState.textContent = data.message || 'Logo toko belum dapat disimpan.';
+        storeLogoState.textContent = data.message || 'Logo header web belum dapat disimpan.';
         return;
       }
       storeLogoData = '';
@@ -1455,10 +1455,10 @@
       storeLogoImage.value = '';
       storeLogoUrlSaved = data.logoUrl || '';
       renderStoreLogoAttachment();
-      storeLogoState.textContent = data.logoUrl ? '✓ Logo toko berhasil disimpan dan tampil di katalog web.' : 'Logo toko berhasil dihapus.';
+      storeLogoState.textContent = data.logoUrl ? '✓ Logo header web berhasil disimpan.' : 'Logo header web berhasil dihapus.';
       storeLogoState.classList.add('success');
     } catch {
-      storeLogoState.textContent = 'Logo toko belum dapat disimpan. Coba lagi.';
+      storeLogoState.textContent = 'Logo header web belum dapat disimpan. Coba lagi.';
     } finally {
       setStoreLogoSaving(false);
     }
